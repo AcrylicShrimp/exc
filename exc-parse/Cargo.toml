@@ -1,0 +1,14 @@
+[package]
+name = "exc-parse"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+exc-diagnostic = { path = "../exc-diagnostic" }
+exc-span = { path = "../exc-span" }
+exc-symbol = { path = "../exc-symbol" }
+
+lazy_static = { version = "1" }
+unicode-xid = { version = "0.2" }

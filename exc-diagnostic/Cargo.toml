@@ -1,0 +1,10 @@
+[package]
+name = "exc-diagnostic"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+exc-span = { path = "../exc-span" }
+exc-symbol = { path = "../exc-symbol" }
