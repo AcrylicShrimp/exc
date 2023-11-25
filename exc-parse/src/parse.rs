@@ -5,18 +5,32 @@ pub use parser::*;
 pub use token_type::*;
 
 use crate::{
-    ASTExpr, ASTExprAs, ASTExprBinary, ASTExprBinaryOperator, ASTExprBinaryOperatorKind,
-    ASTExprCall, ASTExprCallCallee, ASTExprKind, ASTExprLiteral, ASTExprMember, ASTExprParen,
-    ASTExprPath, ASTExprStructLiteral, ASTExprStructLiteralField, ASTExprUnary,
-    ASTExprUnaryOperator, ASTExprUnaryOperatorKind, ASTGenericArg, ASTGenericWhere,
-    ASTGenericWhereItem, ASTGenericWhereItemCondition, ASTGenericWhereItemConditionItem, ASTModule,
-    ASTPath, ASTPathSegment, ASTStmt, ASTStmtAssignment, ASTStmtAssignmentOperator,
-    ASTStmtAssignmentOperatorKind, ASTStmtBlock, ASTStmtBreak, ASTStmtContinue, ASTStmtExpr,
-    ASTStmtIf, ASTStmtIfElse, ASTStmtIfElseIf, ASTStmtKind, ASTStmtLet, ASTStmtLetExpr,
-    ASTStmtLetTy, ASTStmtLoop, ASTStmtReturn, ASTStmtWhile, ASTTy, ASTTyArray, ASTTyFnPointer,
-    ASTTyKind, ASTTyParen, ASTTySpan, NodeIdAllocator, Punctuated, PunctuatedItem, Token,
-    TokenKind, KEYWORD_AS, KEYWORD_BREAK, KEYWORD_CONTINUE, KEYWORD_ELSE, KEYWORD_FN, KEYWORD_IF,
-    KEYWORD_LET, KEYWORD_LOOP, KEYWORD_RETURN, KEYWORD_WHERE, KEYWORD_WHILE,
+    before_extern_block_item, before_fn_params_item, before_generic_arg_item,
+    before_generic_param_item, before_generic_where_item, before_generic_where_item_condition_item,
+    before_impl_block_item, before_interface_item, before_interface_item_fn_decl_params_item,
+    before_module_item, before_prototype_params_item, before_stmt, before_struct_fields_item,
+    before_use_path_item_group_item, ASTAliasDef, ASTExpr, ASTExprAs, ASTExprBinary,
+    ASTExprBinaryOperator, ASTExprBinaryOperatorKind, ASTExprCall, ASTExprCallCallee, ASTExprKind,
+    ASTExprLiteral, ASTExprMember, ASTExprParen, ASTExprPath, ASTExprStructLiteral,
+    ASTExprStructLiteralField, ASTExprUnary, ASTExprUnaryOperator, ASTExprUnaryOperatorKind,
+    ASTExternBlock, ASTExternBlockItem, ASTExternBlockItemKind, ASTFnDef, ASTFnParam, ASTFnResult,
+    ASTGenericArg, ASTGenericParam, ASTGenericParamItem, ASTGenericWhere, ASTGenericWhereItem,
+    ASTGenericWhereItemCondition, ASTGenericWhereItemConditionItem, ASTImplBlock,
+    ASTImplBlockInterface, ASTImplBlockItem, ASTImplBlockItemKind, ASTInterfaceDef,
+    ASTInterfaceDefItem, ASTInterfaceDefItemFnDecl, ASTInterfaceDefItemKind, ASTModule,
+    ASTModuleDef, ASTModuleItem, ASTModuleItemKind, ASTPath, ASTPathSegment, ASTPrototypeDef,
+    ASTStmt, ASTStmtAssignment, ASTStmtAssignmentOperator, ASTStmtAssignmentOperatorKind,
+    ASTStmtBlock, ASTStmtBreak, ASTStmtContinue, ASTStmtExpr, ASTStmtIf, ASTStmtIfElse,
+    ASTStmtIfElseIf, ASTStmtKind, ASTStmtLet, ASTStmtLetExpr, ASTStmtLetTy, ASTStmtLoop,
+    ASTStmtReturn, ASTStmtWhile, ASTStructDef, ASTStructDefField, ASTTy, ASTTyArray,
+    ASTTyFnPointer, ASTTyKind, ASTTyParen, ASTTySpan, ASTUse, ASTUsePath, ASTUsePathItem,
+    ASTUsePathItemGroup, ASTUsePathItemKind, ASTUsePathItemSingle, ASTUsePathItemSingleAlias,
+    ASTUsePathPrefix, ASTUsePathPrefixSegment, ASTUsePathPrefixSegmentKind, NodeIdAllocator,
+    Punctuated, PunctuatedItem, Token, TokenKind, KEYWORD_ALIAS, KEYWORD_AS, KEYWORD_BREAK,
+    KEYWORD_CONTINUE, KEYWORD_ELSE, KEYWORD_EXTERN, KEYWORD_FN, KEYWORD_IF, KEYWORD_IMPL,
+    KEYWORD_INTERFACE, KEYWORD_LET, KEYWORD_LOOP, KEYWORD_MODULE, KEYWORD_PROTOTYPE, KEYWORD_PUB,
+    KEYWORD_RETURN, KEYWORD_SELF, KEYWORD_STRUCT, KEYWORD_SUPER, KEYWORD_USE, KEYWORD_WHERE,
+    KEYWORD_WHILE,
 };
 use exc_diagnostic::DiagnosticsSender;
 
@@ -25,15 +39,856 @@ pub fn parse_module(
     id_allocator: &mut NodeIdAllocator,
     diagnostics: &DiagnosticsSender,
 ) -> ASTModule {
-    let mut parser = Parser::new(token_stream, id_allocator, diagnostics);
-
-    todo!()
+    Parser::new(token_stream, id_allocator, diagnostics).parse_module()
 }
 
 impl<'a, 'd, T> Parser<'a, 'd, T>
 where
     T: Iterator<Item = Token>,
 {
+    pub fn parse_module(&mut self) -> ASTModule {
+        let (id, pos) = self.new_node();
+        let mut items = Vec::new();
+
+        while self.is_exists() {
+            match self.parse_module_item() {
+                Ok(item) => {
+                    items.push(item);
+                }
+                Err(_) => {
+                    // eat erroneous tokens
+                    self.skip_tokens(|token| before_module_item(token));
+                }
+            }
+        }
+
+        ASTModule {
+            id,
+            span: self.make_span(pos),
+            items,
+        }
+    }
+
+    pub fn parse_module_item(&mut self) -> Result<ASTModuleItem, ()> {
+        let (id, pos) = self.new_node();
+
+        let kind = if self.lookup_keyword(0, *KEYWORD_USE)
+            || (self.lookup_keyword(0, *KEYWORD_PUB) && self.lookup_keyword(1, *KEYWORD_USE))
+        {
+            ASTModuleItemKind::Use(self.parse_use()?)
+        } else if self.lookup_keyword(0, *KEYWORD_ALIAS)
+            || (self.lookup_keyword(0, *KEYWORD_PUB) && self.lookup_keyword(1, *KEYWORD_ALIAS))
+        {
+            ASTModuleItemKind::AliasDef(self.parse_alias_def()?)
+        } else if self.lookup_keyword(0, *KEYWORD_MODULE)
+            || (self.lookup_keyword(0, *KEYWORD_PUB) && self.lookup_keyword(1, *KEYWORD_MODULE))
+        {
+            ASTModuleItemKind::ModuleDef(self.parse_module_def()?)
+        } else if self.lookup_keyword(0, *KEYWORD_EXTERN) {
+            ASTModuleItemKind::ExternBlock(self.parse_extern_block()?)
+        } else if self.lookup_keyword(0, *KEYWORD_FN)
+            || (self.lookup_keyword(0, *KEYWORD_PUB) && self.lookup_keyword(1, *KEYWORD_FN))
+        {
+            ASTModuleItemKind::FnDef(self.parse_fn_def()?)
+        } else if self.lookup_keyword(0, *KEYWORD_STRUCT)
+            || (self.lookup_keyword(0, *KEYWORD_PUB) && self.lookup_keyword(1, *KEYWORD_STRUCT))
+        {
+            ASTModuleItemKind::StructDef(self.parse_struct_def()?)
+        } else if self.lookup_keyword(0, *KEYWORD_INTERFACE)
+            || (self.lookup_keyword(0, *KEYWORD_PUB) && self.lookup_keyword(1, *KEYWORD_INTERFACE))
+        {
+            ASTModuleItemKind::InterfaceDef(self.parse_interface_def()?)
+        } else {
+            ASTModuleItemKind::ImplBlock(self.parse_impl_block()?)
+        };
+
+        Ok(ASTModuleItem {
+            id,
+            span: self.make_span(pos),
+            kind,
+        })
+    }
+
+    pub fn parse_use(&mut self) -> Result<ASTUse, ()> {
+        let (id, pos) = self.new_node();
+        let keyword_pub = self.keyword(*KEYWORD_PUB);
+        let keyword_use = self.keyword_or_err(*KEYWORD_USE)?;
+        let path = self.parse_use_path()?;
+        let token_semicolon = self.kind_or_err(TokenKind::Semicolon)?;
+
+        Ok(ASTUse {
+            id,
+            span: self.make_span(pos),
+            keyword_pub,
+            keyword_use,
+            path,
+            token_semicolon,
+        })
+    }
+
+    pub fn parse_use_path(&mut self) -> Result<ASTUsePath, ()> {
+        let (id, pos) = self.new_node();
+        let prefix = self.parse_use_path_prefix()?;
+        let item = self.parse_use_path_item()?;
+
+        Ok(ASTUsePath {
+            id,
+            span: self.make_span(pos),
+            prefix: if prefix.segments.is_empty() {
+                None
+            } else {
+                Some(prefix)
+            },
+            item,
+        })
+    }
+
+    pub fn parse_use_path_prefix(&mut self) -> Result<ASTUsePathPrefix, ()> {
+        let (id, pos) = self.new_node();
+
+        let mut segments = Vec::new();
+
+        while self.lookup_identifier(0) && self.lookup_kind(1, TokenKind::PathSep) {
+            segments.push(self.parse_use_path_prefix_segment()?);
+        }
+
+        Ok(ASTUsePathPrefix {
+            id,
+            span: self.make_span(pos),
+            segments,
+        })
+    }
+
+    pub fn parse_use_path_prefix_segment(&mut self) -> Result<ASTUsePathPrefixSegment, ()> {
+        let (id, pos) = self.new_node();
+
+        let kind = if let Some(keyword) = self.keyword(*KEYWORD_SELF) {
+            ASTUsePathPrefixSegmentKind::Self_(keyword)
+        } else if let Some(keyword) = self.keyword(*KEYWORD_SUPER) {
+            ASTUsePathPrefixSegmentKind::Super_(keyword)
+        } else {
+            ASTUsePathPrefixSegmentKind::Identifier(self.identifier_or_err()?)
+        };
+
+        let token_path_sep = self.kind_or_err(TokenKind::PathSep)?;
+
+        Ok(ASTUsePathPrefixSegment {
+            id,
+            span: self.make_span(pos),
+            kind,
+            token_path_sep,
+        })
+    }
+
+    pub fn parse_use_path_item(&mut self) -> Result<ASTUsePathItem, ()> {
+        let (id, pos) = self.new_node();
+
+        let kind = if let Some(token) = self.kind(TokenKind::Mul) {
+            ASTUsePathItemKind::All(token)
+        } else if self.lookup_identifier(0) {
+            ASTUsePathItemKind::Single(self.parse_use_path_item_single()?)
+        } else {
+            ASTUsePathItemKind::Group(self.parse_use_path_item_group()?)
+        };
+
+        Ok(ASTUsePathItem {
+            id,
+            span: self.make_span(pos),
+            kind,
+        })
+    }
+
+    pub fn parse_use_path_item_single(&mut self) -> Result<ASTUsePathItemSingle, ()> {
+        let (id, pos) = self.new_node();
+        let identifier = self.identifier_or_err()?;
+        let alias = if self.lookup_keyword(0, *KEYWORD_AS) {
+            Some(self.parse_use_path_item_single_alias()?)
+        } else {
+            None
+        };
+
+        Ok(ASTUsePathItemSingle {
+            id,
+            span: self.make_span(pos),
+            identifier,
+            alias,
+        })
+    }
+
+    pub fn parse_use_path_item_single_alias(&mut self) -> Result<ASTUsePathItemSingleAlias, ()> {
+        let (id, pos) = self.new_node();
+        let keyword_as = self.keyword_or_err(*KEYWORD_AS)?;
+        let identifier = self.identifier_or_err()?;
+
+        Ok(ASTUsePathItemSingleAlias {
+            id,
+            span: self.make_span(pos),
+            keyword_as,
+            identifier,
+        })
+    }
+
+    pub fn parse_use_path_item_group(&mut self) -> Result<ASTUsePathItemGroup, ()> {
+        let (id, pos) = self.new_node();
+        let token_brace_open = self.kind_or_err(TokenKind::OpenBrace)?;
+
+        let mut items = Vec::new();
+
+        while self.is_exists() && !self.lookup_kind(0, TokenKind::CloseBrace) {
+            let item = match self.parse_use_path() {
+                Ok(item) => item,
+                Err(_) => {
+                    // eat erroneous tokens
+                    self.skip_tokens(|token| {
+                        before_use_path_item_group_item(token) && before_module_item(token)
+                    });
+                    continue;
+                }
+            };
+
+            let punctuation = self.kind(TokenKind::Comma);
+
+            match punctuation {
+                Some(punctuation) => {
+                    items.push(PunctuatedItem::Punctuated { item, punctuation });
+                }
+                None => {
+                    items.push(PunctuatedItem::NotPunctuated { item });
+                    break;
+                }
+            }
+        }
+
+        let token_brace_close = self.kind_or_err(TokenKind::CloseBrace)?;
+
+        Ok(ASTUsePathItemGroup {
+            id,
+            span: self.make_span(pos),
+            token_brace_open,
+            items: Punctuated { items },
+            token_brace_close,
+        })
+    }
+
+    pub fn parse_alias_def(&mut self) -> Result<ASTAliasDef, ()> {
+        let (id, pos) = self.new_node();
+        let keyword_pub = self.keyword(*KEYWORD_PUB);
+        let keyword_alias = self.keyword_or_err(*KEYWORD_ALIAS)?;
+        let identifier = self.identifier_or_err()?;
+        let token_assign = self.kind_or_err(TokenKind::Assign)?;
+        let ty = self.parse_ty()?;
+        let token_semicolon = self.kind_or_err(TokenKind::Semicolon)?;
+
+        Ok(ASTAliasDef {
+            id,
+            span: self.make_span(pos),
+            keyword_pub,
+            keyword_alias,
+            identifier,
+            token_assign,
+            ty,
+            token_semicolon,
+        })
+    }
+
+    pub fn parse_module_def(&mut self) -> Result<ASTModuleDef, ()> {
+        let (id, pos) = self.new_node();
+        let keyword_pub = self.keyword(*KEYWORD_PUB);
+        let keyword_module = self.keyword_or_err(*KEYWORD_MODULE)?;
+        let identifier = self.identifier_or_err()?;
+        let token_brace_open = self.kind_or_err(TokenKind::OpenBrace)?;
+
+        let mut items = Vec::new();
+
+        while self.is_exists() && !self.lookup_kind(0, TokenKind::CloseBrace) {
+            match self.parse_module_item() {
+                Ok(item) => {
+                    items.push(item);
+                }
+                Err(_) => {
+                    // eat erroneous tokens
+                    self.skip_tokens(|token| before_module_item(token));
+                }
+            }
+        }
+
+        let token_brace_close = self.kind_or_err(TokenKind::CloseBrace)?;
+
+        Ok(ASTModuleDef {
+            id,
+            span: self.make_span(pos),
+            keyword_pub,
+            keyword_module,
+            identifier,
+            token_brace_open,
+            items,
+            token_brace_close,
+        })
+    }
+
+    pub fn parse_extern_block(&mut self) -> Result<ASTExternBlock, ()> {
+        let (id, pos) = self.new_node();
+        let keyword_extern = self.keyword_or_err(*KEYWORD_EXTERN)?;
+        let token_brace_open = self.kind_or_err(TokenKind::OpenBrace)?;
+
+        let mut items = Vec::new();
+
+        while self.is_exists() && !self.lookup_kind(0, TokenKind::CloseBrace) {
+            match self.parse_extern_block_item() {
+                Ok(item) => {
+                    items.push(item);
+                }
+                Err(_) => {
+                    // eat erroneous tokens
+                    self.skip_tokens(|token| {
+                        before_extern_block_item(token) && before_module_item(token)
+                    });
+                }
+            }
+        }
+
+        let token_brace_close = self.kind_or_err(TokenKind::CloseBrace)?;
+
+        Ok(ASTExternBlock {
+            id,
+            span: self.make_span(pos),
+            keyword_extern,
+            token_brace_open,
+            items,
+            token_brace_close,
+        })
+    }
+
+    pub fn parse_extern_block_item(&mut self) -> Result<ASTExternBlockItem, ()> {
+        let (id, pos) = self.new_node();
+
+        let kind = if self.lookup_keyword(0, *KEYWORD_PROTOTYPE)
+            || (self.lookup_keyword(0, *KEYWORD_PUB) && self.lookup_keyword(1, *KEYWORD_PROTOTYPE))
+        {
+            ASTExternBlockItemKind::PrototypeDef(self.parse_prototype_def()?)
+        } else if self.lookup_keyword(0, *KEYWORD_FN)
+            || (self.lookup_keyword(0, *KEYWORD_PUB) && self.lookup_keyword(1, *KEYWORD_FN))
+        {
+            ASTExternBlockItemKind::FnDef(self.parse_fn_def()?)
+        } else if self.lookup_keyword(0, *KEYWORD_STRUCT)
+            || (self.lookup_keyword(0, *KEYWORD_PUB) && self.lookup_keyword(1, *KEYWORD_STRUCT))
+        {
+            ASTExternBlockItemKind::StructDef(self.parse_struct_def()?)
+        } else {
+            ASTExternBlockItemKind::ImplBlock(self.parse_impl_block()?)
+        };
+
+        Ok(ASTExternBlockItem {
+            id,
+            span: self.make_span(pos),
+            kind,
+        })
+    }
+
+    pub fn parse_prototype_def(&mut self) -> Result<ASTPrototypeDef, ()> {
+        let (id, pos) = self.new_node();
+        let keyword_pub = self.keyword(*KEYWORD_PUB);
+        let keyword_prototype = self.keyword_or_err(*KEYWORD_PROTOTYPE)?;
+        let identifier = self.identifier_or_err()?;
+        let token_paren_open = self.kind_or_err(TokenKind::OpenParen)?;
+
+        let mut params = Vec::new();
+
+        while self.is_exists() && !self.lookup_kind(0, TokenKind::CloseParen) {
+            let param = match self.parse_fn_param() {
+                Ok(param) => param,
+                Err(_) => {
+                    // eat erroneous tokens
+                    self.skip_tokens(|token| {
+                        before_prototype_params_item(token)
+                            && before_extern_block_item(token)
+                            && before_module_item(token)
+                    });
+                    continue;
+                }
+            };
+
+            let punctuation = self.kind(TokenKind::Comma);
+
+            match punctuation {
+                Some(punctuation) => {
+                    params.push(PunctuatedItem::Punctuated {
+                        item: param,
+                        punctuation,
+                    });
+                }
+                None => {
+                    params.push(PunctuatedItem::NotPunctuated { item: param });
+                    break;
+                }
+            }
+        }
+
+        let token_paren_close = self.kind_or_err(TokenKind::CloseParen)?;
+        let result = if self.lookup_kind(0, TokenKind::Arrow) {
+            Some(self.parse_fn_result()?)
+        } else {
+            None
+        };
+        let token_semicolon = self.kind_or_err(TokenKind::Semicolon)?;
+
+        Ok(ASTPrototypeDef {
+            id,
+            span: self.make_span(pos),
+            keyword_pub,
+            keyword_prototype,
+            identifier,
+            token_paren_open,
+            params: Punctuated { items: params },
+            token_paren_close,
+            result,
+            token_semicolon,
+        })
+    }
+
+    pub fn parse_fn_def(&mut self) -> Result<ASTFnDef, ()> {
+        let (id, pos) = self.new_node();
+        let keyword_pub = self.keyword(*KEYWORD_PUB);
+        let keyword_fn = self.keyword_or_err(*KEYWORD_FN)?;
+        let identifier = self.identifier_or_err()?;
+        let generic_param = if self.lookup_kind(0, TokenKind::Lt) {
+            Some(self.parse_generic_param()?)
+        } else {
+            None
+        };
+        let token_paren_open = self.kind_or_err(TokenKind::OpenParen)?;
+
+        let mut params = Vec::new();
+
+        while self.is_exists() && !self.lookup_kind(0, TokenKind::CloseParen) {
+            let param = match self.parse_fn_param() {
+                Ok(param) => param,
+                Err(_) => {
+                    // eat erroneous tokens
+                    self.skip_tokens(|token| {
+                        before_fn_params_item(token)
+                            && before_extern_block_item(token)
+                            && before_module_item(token)
+                    });
+                    continue;
+                }
+            };
+
+            let punctuation = self.kind(TokenKind::Comma);
+
+            match punctuation {
+                Some(punctuation) => {
+                    params.push(PunctuatedItem::Punctuated {
+                        item: param,
+                        punctuation,
+                    });
+                }
+                None => {
+                    params.push(PunctuatedItem::NotPunctuated { item: param });
+                    break;
+                }
+            }
+        }
+
+        let token_paren_close = self.kind_or_err(TokenKind::CloseParen)?;
+        let result = if self.lookup_kind(0, TokenKind::Arrow) {
+            Some(self.parse_fn_result()?)
+        } else {
+            None
+        };
+        let generic_where = if self.lookup_keyword(0, *KEYWORD_WHERE) {
+            Some(self.parse_generic_where()?)
+        } else {
+            None
+        };
+        let stmt_block = self.parse_stmt_block()?;
+
+        Ok(ASTFnDef {
+            id,
+            span: self.make_span(pos),
+            keyword_pub,
+            keyword_fn,
+            identifier,
+            generic_param,
+            token_paren_open,
+            params: Punctuated { items: params },
+            token_paren_close,
+            result,
+            generic_where,
+            stmt_block,
+        })
+    }
+
+    pub fn parse_fn_param(&mut self) -> Result<ASTFnParam, ()> {
+        let (id, pos) = self.new_node();
+        let identifier = self.identifier_or_err()?;
+        let token_colon = self.kind_or_err(TokenKind::Colon)?;
+        let ty = self.parse_ty()?;
+
+        Ok(ASTFnParam {
+            id,
+            span: self.make_span(pos),
+            identifier,
+            token_colon,
+            ty,
+        })
+    }
+
+    pub fn parse_fn_result(&mut self) -> Result<ASTFnResult, ()> {
+        let (id, pos) = self.new_node();
+        let token_arrow = self.kind_or_err(TokenKind::Arrow)?;
+        let ty = self.parse_ty()?;
+
+        Ok(ASTFnResult {
+            id,
+            span: self.make_span(pos),
+            token_arrow,
+            ty,
+        })
+    }
+
+    pub fn parse_struct_def(&mut self) -> Result<ASTStructDef, ()> {
+        let (id, pos) = self.new_node();
+        let keyword_pub = self.keyword(*KEYWORD_PUB);
+        let keyword_struct = self.keyword_or_err(*KEYWORD_STRUCT)?;
+        let identifier = self.identifier_or_err()?;
+        let generic_param = if self.lookup_kind(0, TokenKind::Lt) {
+            Some(self.parse_generic_param()?)
+        } else {
+            None
+        };
+        let generic_where = if self.lookup_keyword(0, *KEYWORD_WHERE) {
+            Some(self.parse_generic_where()?)
+        } else {
+            None
+        };
+        let token_brace_open = self.kind_or_err(TokenKind::OpenBrace)?;
+
+        let mut fields = Vec::new();
+
+        while self.is_exists() && !self.lookup_kind(0, TokenKind::CloseBrace) {
+            let field = match self.parse_struct_def_field() {
+                Ok(field) => field,
+                Err(_) => {
+                    // eat erroneous tokens
+                    self.skip_tokens(|token| {
+                        before_struct_fields_item(token)
+                            && before_extern_block_item(token)
+                            && before_module_item(token)
+                    });
+                    continue;
+                }
+            };
+
+            let punctuation = self.kind(TokenKind::Comma);
+
+            match punctuation {
+                Some(punctuation) => {
+                    fields.push(PunctuatedItem::Punctuated {
+                        item: field,
+                        punctuation,
+                    });
+                }
+                None => {
+                    fields.push(PunctuatedItem::NotPunctuated { item: field });
+                    break;
+                }
+            }
+        }
+
+        let token_brace_close = self.kind_or_err(TokenKind::CloseBrace)?;
+
+        Ok(ASTStructDef {
+            id,
+            span: self.make_span(pos),
+            keyword_pub,
+            keyword_struct,
+            identifier,
+            generic_param,
+            generic_where,
+            token_brace_open,
+            fields: Punctuated { items: fields },
+            token_brace_close,
+        })
+    }
+
+    pub fn parse_struct_def_field(&mut self) -> Result<ASTStructDefField, ()> {
+        let (id, pos) = self.new_node();
+        let identifier = self.identifier_or_err()?;
+        let token_colon = self.kind_or_err(TokenKind::Colon)?;
+        let ty = self.parse_ty()?;
+
+        Ok(ASTStructDefField {
+            id,
+            span: self.make_span(pos),
+            identifier,
+            token_colon,
+            ty,
+        })
+    }
+
+    pub fn parse_interface_def(&mut self) -> Result<ASTInterfaceDef, ()> {
+        let (id, pos) = self.new_node();
+        let keyword_pub = self.keyword(*KEYWORD_PUB);
+        let keyword_interface = self.keyword_or_err(*KEYWORD_INTERFACE)?;
+        let identifier = self.identifier_or_err()?;
+        let generic_param = if self.lookup_kind(0, TokenKind::Lt) {
+            Some(self.parse_generic_param()?)
+        } else {
+            None
+        };
+        let generic_where = if self.lookup_keyword(0, *KEYWORD_WHERE) {
+            Some(self.parse_generic_where()?)
+        } else {
+            None
+        };
+        let token_brace_open = self.kind_or_err(TokenKind::OpenBrace)?;
+
+        let mut items = Vec::new();
+
+        while self.is_exists() && !self.lookup_kind(0, TokenKind::CloseBrace) {
+            match self.parse_interface_def_item() {
+                Ok(item) => {
+                    items.push(item);
+                }
+                Err(_) => {
+                    // eat erroneous tokens
+                    self.skip_tokens(|token| {
+                        before_interface_item(token) && before_module_item(token)
+                    });
+                }
+            }
+        }
+
+        let token_brace_close = self.kind_or_err(TokenKind::CloseBrace)?;
+
+        Ok(ASTInterfaceDef {
+            id,
+            span: self.make_span(pos),
+            keyword_pub,
+            keyword_interface,
+            identifier,
+            generic_param,
+            generic_where,
+            token_brace_open,
+            items,
+            token_brace_close,
+        })
+    }
+
+    pub fn parse_interface_def_item(&mut self) -> Result<ASTInterfaceDefItem, ()> {
+        let (id, pos) = self.new_node();
+        let kind = ASTInterfaceDefItemKind::FnDecl(self.parse_interface_def_item_fn_decl()?);
+
+        Ok(ASTInterfaceDefItem {
+            id,
+            span: self.make_span(pos),
+            kind,
+        })
+    }
+
+    pub fn parse_interface_def_item_fn_decl(&mut self) -> Result<ASTInterfaceDefItemFnDecl, ()> {
+        let (id, pos) = self.new_node();
+        let keyword_fn = self.keyword_or_err(*KEYWORD_FN)?;
+        let identifier = self.identifier_or_err()?;
+        let generic_param = if self.lookup_kind(0, TokenKind::Lt) {
+            Some(self.parse_generic_param()?)
+        } else {
+            None
+        };
+        let token_paren_open = self.kind_or_err(TokenKind::OpenParen)?;
+
+        let mut params = Vec::new();
+
+        while self.is_exists() && !self.lookup_kind(0, TokenKind::CloseParen) {
+            let param = match self.parse_fn_param() {
+                Ok(param) => param,
+                Err(_) => {
+                    // eat erroneous tokens
+                    self.skip_tokens(|token| {
+                        before_interface_item_fn_decl_params_item(token)
+                            && before_interface_item(token)
+                            && before_module_item(token)
+                    });
+                    continue;
+                }
+            };
+
+            let punctuation = self.kind(TokenKind::Comma);
+
+            match punctuation {
+                Some(punctuation) => {
+                    params.push(PunctuatedItem::Punctuated {
+                        item: param,
+                        punctuation,
+                    });
+                }
+                None => {
+                    params.push(PunctuatedItem::NotPunctuated { item: param });
+                    break;
+                }
+            }
+        }
+
+        let token_paren_close = self.kind_or_err(TokenKind::CloseParen)?;
+        let result = if self.lookup_kind(0, TokenKind::Arrow) {
+            Some(self.parse_fn_result()?)
+        } else {
+            None
+        };
+        let generic_where = if self.lookup_keyword(0, *KEYWORD_WHERE) {
+            Some(self.parse_generic_where()?)
+        } else {
+            None
+        };
+        let token_semicolon = self.kind_or_err(TokenKind::Semicolon)?;
+
+        Ok(ASTInterfaceDefItemFnDecl {
+            id,
+            span: self.make_span(pos),
+            keyword_fn,
+            identifier,
+            generic_param,
+            token_paren_open,
+            params: Punctuated { items: params },
+            token_paren_close,
+            result,
+            generic_where,
+            token_semicolon,
+        })
+    }
+
+    pub fn parse_impl_block(&mut self) -> Result<ASTImplBlock, ()> {
+        let (id, pos) = self.new_node();
+        let keyword_impl = self.keyword_or_err(*KEYWORD_IMPL)?;
+        let generic_param = if self.lookup_kind(0, TokenKind::Lt) {
+            Some(self.parse_generic_param()?)
+        } else {
+            None
+        };
+        let ty = self.parse_ty()?;
+        let interface = if self.lookup_keyword(0, *KEYWORD_INTERFACE) {
+            Some(self.parse_impl_block_interface()?)
+        } else {
+            None
+        };
+        let generic_where = if self.lookup_keyword(0, *KEYWORD_WHERE) {
+            Some(self.parse_generic_where()?)
+        } else {
+            None
+        };
+        let token_brace_open = self.kind_or_err(TokenKind::OpenBrace)?;
+
+        let mut items = Vec::new();
+
+        while self.is_exists() && !self.lookup_kind(0, TokenKind::CloseBrace) {
+            match self.parse_impl_block_item() {
+                Ok(item) => {
+                    items.push(item);
+                }
+                Err(_) => {
+                    // eat erroneous tokens
+                    self.skip_tokens(|token| {
+                        before_impl_block_item(token) && before_module_item(token)
+                    });
+                }
+            }
+        }
+
+        let token_brace_close = self.kind_or_err(TokenKind::CloseBrace)?;
+
+        Ok(ASTImplBlock {
+            id,
+            span: self.make_span(pos),
+            keyword_impl,
+            generic_param,
+            ty,
+            interface,
+            generic_where,
+            token_brace_open,
+            items,
+            token_brace_close,
+        })
+    }
+
+    pub fn parse_impl_block_interface(&mut self) -> Result<ASTImplBlockInterface, ()> {
+        let (id, pos) = self.new_node();
+        let keyword_interface = self.keyword_or_err(*KEYWORD_INTERFACE)?;
+        let path = self.parse_path()?;
+
+        Ok(ASTImplBlockInterface {
+            id,
+            span: self.make_span(pos),
+            keyword_interface,
+            path,
+        })
+    }
+
+    pub fn parse_impl_block_item(&mut self) -> Result<ASTImplBlockItem, ()> {
+        let (id, pos) = self.new_node();
+        let kind = ASTImplBlockItemKind::FnDef(self.parse_fn_def()?);
+
+        Ok(ASTImplBlockItem {
+            id,
+            span: self.make_span(pos),
+            kind,
+        })
+    }
+
+    pub fn parse_generic_param(&mut self) -> Result<ASTGenericParam, ()> {
+        let (id, pos) = self.new_node();
+        let token_angle_open = self.kind_or_err(TokenKind::Lt)?;
+
+        let mut items = Vec::new();
+
+        while self.is_exists() && !self.lookup_kind(0, TokenKind::Gt) {
+            let item = match self.parse_generic_param_item() {
+                Ok(item) => item,
+                Err(_) => {
+                    // eat erroneous tokens
+                    self.skip_tokens(|token| {
+                        before_generic_param_item(token)
+                            && before_impl_block_item(token)
+                            && before_module_item(token)
+                    });
+                    continue;
+                }
+            };
+            let punctuation = self.kind(TokenKind::Comma);
+
+            match punctuation {
+                Some(punctuation) => {
+                    items.push(PunctuatedItem::Punctuated { item, punctuation });
+                }
+                None => {
+                    items.push(PunctuatedItem::NotPunctuated { item });
+                    break;
+                }
+            }
+        }
+
+        let token_angle_close = self.kind_or_err(TokenKind::Gt)?;
+
+        Ok(ASTGenericParam {
+            id,
+            span: self.make_span(pos),
+            token_angle_open,
+            items: Punctuated { items },
+            token_angle_close,
+        })
+    }
+
+    pub fn parse_generic_param_item(&mut self) -> Result<ASTGenericParamItem, ()> {
+        let (id, pos) = self.new_node();
+        let identifier = self.identifier_or_err()?;
+
+        Ok(ASTGenericParamItem {
+            id,
+            span: self.make_span(pos),
+            identifier,
+        })
+    }
+
     pub fn parse_generic_where(&mut self) -> Result<ASTGenericWhere, ()> {
         let (id, pos) = self.new_node();
         let keyword_where = self.keyword_or_err(*KEYWORD_WHERE)?;
@@ -41,8 +896,19 @@ where
         let mut items = Vec::new();
 
         while self.is_exists() && self.lookup_identifier(0) {
-            let item = self.parse_generic_where_item()?;
-            let punctuation = self.kind(TokenKind::Comma)?;
+            let item = match self.parse_generic_where_item() {
+                Ok(item) => item,
+                Err(_) => {
+                    // eat erroneous tokens
+                    self.skip_tokens(|token| {
+                        before_generic_where_item(token)
+                            && before_impl_block_item(token)
+                            && before_module_item(token)
+                    });
+                    continue;
+                }
+            };
+            let punctuation = self.kind(TokenKind::Comma);
 
             match punctuation {
                 Some(punctuation) => {
@@ -87,7 +953,20 @@ where
         let mut extra_items = Vec::new();
 
         while self.is_exists() && self.lookup_kind(0, TokenKind::Add) {
-            extra_items.push(self.parse_generic_where_item_condition_item()?);
+            match self.parse_generic_where_item_condition_item() {
+                Ok(item) => {
+                    extra_items.push(item);
+                }
+                Err(_) => {
+                    // eat erroneous tokens
+                    self.skip_tokens(|token| {
+                        before_generic_where_item_condition_item(token)
+                            && before_generic_where_item(token)
+                            && before_impl_block_item(token)
+                            && before_module_item(token)
+                    });
+                }
+            }
         }
 
         Ok(ASTGenericWhereItemCondition {
@@ -120,8 +999,20 @@ where
         let mut args = Vec::new();
 
         while self.is_exists() && !self.lookup_kind(0, TokenKind::Gt) {
-            let arg = self.parse_ty()?;
-            let punctuation = self.kind(TokenKind::Comma)?;
+            let arg = match self.parse_ty() {
+                Ok(arg) => arg,
+                Err(_) => {
+                    // eat erroneous tokens
+                    self.skip_tokens(|token| {
+                        before_generic_arg_item(token)
+                            && before_impl_block_item(token)
+                            && before_module_item(token)
+                    });
+                    continue;
+                }
+            };
+
+            let punctuation = self.kind(TokenKind::Comma);
 
             match punctuation {
                 Some(punctuation) => {
@@ -155,7 +1046,19 @@ where
         let mut stmts = Vec::new();
 
         while self.is_exists() && !self.lookup_kind(0, TokenKind::CloseBrace) {
-            stmts.push(self.parse_stmt()?);
+            match self.parse_stmt() {
+                Ok(stmt) => {
+                    stmts.push(stmt);
+                }
+                Err(_) => {
+                    // eat erroneous tokens
+                    self.skip_tokens(|token| {
+                        before_stmt(token)
+                            && before_impl_block_item(token)
+                            && before_module_item(token)
+                    });
+                }
+            }
         }
 
         let token_brace_close = self.kind_or_err(TokenKind::CloseBrace)?;
@@ -711,7 +1614,7 @@ where
 
         while self.is_exists() && !self.lookup_kind(0, TokenKind::CloseParen) {
             let arg = self.parse_expr()?;
-            let punctuation = self.kind(TokenKind::Comma)?;
+            let punctuation = self.kind(TokenKind::Comma);
 
             match punctuation {
                 Some(punctuation) => {
@@ -875,7 +1778,7 @@ where
 
         while self.is_exists() && !self.lookup_kind(0, TokenKind::CloseBrace) {
             let field = self.parse_expr_struct_literal_field()?;
-            let punctuation = self.kind(TokenKind::Comma)?;
+            let punctuation = self.kind(TokenKind::Comma);
 
             match punctuation {
                 Some(punctuation) => {
@@ -1048,7 +1951,7 @@ where
 
         while self.is_exists() && !self.lookup_kind(0, TokenKind::CloseParen) {
             let param = self.parse_ty()?;
-            let punctuation = self.kind(TokenKind::Comma)?;
+            let punctuation = self.kind(TokenKind::Comma);
 
             match punctuation {
                 Some(punctuation) => {
@@ -1066,7 +1969,7 @@ where
 
         let token_paren_close = self.kind_or_err(TokenKind::CloseParen)?;
         let result = if self.lookup_kind(0, TokenKind::Arrow) {
-            Some(todo!())
+            Some(self.parse_fn_result()?)
         } else {
             None
         };
@@ -1078,7 +1981,7 @@ where
             token_paren_open,
             params: Punctuated { items: params },
             token_paren_close,
-            result,
+            result: result.map(Box::new),
         })
     }
 }

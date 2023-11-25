@@ -4,6 +4,7 @@ use exc_symbol::Symbol;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum TokenKind {
     Unknown { symbol: Symbol },
+    Whitespace,
     Comment,      // "#"
     OpenParen,    // "("
     CloseParen,   // ")"
@@ -66,6 +67,7 @@ impl TokenKind {
     pub fn into_symbol(self) -> Symbol {
         match self {
             TokenKind::Unknown { .. } => *crate::UNKNOWN,
+            TokenKind::Whitespace => *crate::WHITESPACE,
             TokenKind::Comment => *crate::COMMENT,
             TokenKind::OpenParen => *crate::OPEN_PAREN,
             TokenKind::CloseParen => *crate::CLOSE_PAREN,
@@ -113,7 +115,7 @@ impl TokenKind {
             TokenKind::LogAnd => *crate::LOG_AND,
             TokenKind::BitNot => *crate::BIT_NOT,
             TokenKind::LogNot => *crate::LOG_NOT,
-            TokenKind::PathSep => *crate::MODULE_MEMBER,
+            TokenKind::PathSep => *crate::PATH_SEP,
             TokenKind::Id { .. } => *crate::ID,
             TokenKind::Literal(..) => *crate::LITERAL,
         }

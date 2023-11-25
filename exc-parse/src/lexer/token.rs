@@ -94,6 +94,7 @@ impl Token {
                 _ => return None,
             },
             TokenKind::Unknown { .. }
+            | TokenKind::Whitespace
             | TokenKind::Comment
             | TokenKind::OpenParen
             | TokenKind::CloseParen
@@ -390,6 +391,7 @@ impl Token {
                 });
             }
             TokenKind::Unknown { .. }
+            | TokenKind::Whitespace
             | TokenKind::Comment
             | TokenKind::OpenParen
             | TokenKind::CloseParen

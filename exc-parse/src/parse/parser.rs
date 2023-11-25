@@ -73,10 +73,15 @@ where
         }
     }
 
-    pub fn identifier(&mut self) -> Result<Option<Id>, ()> {
+    pub fn identifier(&mut self) -> Option<Id> {
+        self.fetch_tokens(1);
         self.expected.push(TokenType::Identifier);
 
-        let token = self.next_or_err()?;
+        let token = if let Some(token) = self.token_buffer.get(0).cloned() {
+            token
+        } else {
+            return None;
+        };
 
         match token.kind {
             TokenKind::Id { symbol } => {
@@ -84,12 +89,12 @@ where
                 self.expected.clear();
                 self.last_span = token.span;
 
-                Ok(Some(Id {
+                Some(Id {
                     span: token.span,
                     symbol,
-                }))
+                })
             }
-            _ => Ok(None),
+            _ => None,
         }
     }
 
@@ -114,10 +119,15 @@ where
         }
     }
 
-    pub fn keyword(&mut self, keyword: Symbol) -> Result<Option<Id>, ()> {
+    pub fn keyword(&mut self, keyword: Symbol) -> Option<Id> {
+        self.fetch_tokens(1);
         self.expected.push(TokenType::Keyword(keyword));
 
-        let token = self.next_or_err()?;
+        let token = if let Some(token) = self.token_buffer.get(0).cloned() {
+            token
+        } else {
+            return None;
+        };
 
         match token.kind {
             TokenKind::Id { symbol } if symbol == keyword => {
@@ -125,12 +135,12 @@ where
                 self.expected.clear();
                 self.last_span = token.span;
 
-                Ok(Some(Id {
+                Some(Id {
                     span: token.span,
                     symbol,
-                }))
+                })
             }
-            _ => Ok(None),
+            _ => None,
         }
     }
 
@@ -152,10 +162,15 @@ where
         token.kind == kind
     }
 
-    pub fn kind(&mut self, kind: TokenKind) -> Result<Option<Token>, ()> {
+    pub fn kind(&mut self, kind: TokenKind) -> Option<Token> {
+        self.fetch_tokens(1);
         self.expected.push(TokenType::Token(kind));
 
-        let token = self.next_or_err()?;
+        let token = if let Some(token) = self.token_buffer.get(0).cloned() {
+            token
+        } else {
+            return None;
+        };
 
         match token.kind == kind {
             true => {
@@ -163,9 +178,9 @@ where
                 self.expected.clear();
                 self.last_span = token.span;
 
-                Ok(Some(token))
+                Some(token)
             }
-            false => Ok(None),
+            false => None,
         }
     }
 
@@ -201,10 +216,15 @@ where
         }
     }
 
-    pub fn assignment_op(&mut self) -> Result<Option<Token>, ()> {
+    pub fn assignment_op(&mut self) -> Option<Token> {
+        self.fetch_tokens(1);
         self.expected.push(TokenType::AssignmentOp);
 
-        let token = self.next_or_err()?;
+        let token = if let Some(token) = self.token_buffer.get(0).cloned() {
+            token
+        } else {
+            return None;
+        };
 
         match token.kind {
             TokenKind::Assign
@@ -223,9 +243,9 @@ where
                 self.expected.clear();
                 self.last_span = token.span;
 
-                Ok(Some(token))
+                Some(token)
             }
-            _ => Ok(None),
+            _ => None,
         }
     }
 
@@ -255,10 +275,15 @@ where
         }
     }
 
-    pub fn unary_op(&mut self) -> Result<Option<Token>, ()> {
+    pub fn unary_op(&mut self) -> Option<Token> {
+        self.fetch_tokens(1);
         self.expected.push(TokenType::UnaryOp);
 
-        let token = self.next_or_err()?;
+        let token = if let Some(token) = self.token_buffer.get(0).cloned() {
+            token
+        } else {
+            return None;
+        };
 
         match token.kind {
             TokenKind::Add
@@ -271,9 +296,9 @@ where
                 self.expected.clear();
                 self.last_span = token.span;
 
-                Ok(Some(token))
+                Some(token)
             }
-            _ => Ok(None),
+            _ => None,
         }
     }
 
@@ -316,10 +341,15 @@ where
         }
     }
 
-    pub fn binary_op(&mut self) -> Result<Option<Token>, ()> {
+    pub fn binary_op(&mut self) -> Option<Token> {
+        self.fetch_tokens(1);
         self.expected.push(TokenType::BinaryOp);
 
-        let token = self.next_or_err()?;
+        let token = if let Some(token) = self.token_buffer.get(0).cloned() {
+            token
+        } else {
+            return None;
+        };
 
         match token.kind {
             TokenKind::Eq
@@ -345,9 +375,9 @@ where
                 self.expected.clear();
                 self.last_span = token.span;
 
-                Ok(Some(token))
+                Some(token)
             }
-            _ => Ok(None),
+            _ => None,
         }
     }
 
@@ -356,10 +386,15 @@ where
         self.make_item_or_err(item)
     }
 
-    pub fn literal(&mut self) -> Result<Option<TokenLiteral>, ()> {
+    pub fn literal(&mut self) -> Option<TokenLiteral> {
+        self.fetch_tokens(1);
         self.expected.push(TokenType::Literal);
 
-        let token = self.next_or_err()?;
+        let token = if let Some(token) = self.token_buffer.get(0).cloned() {
+            token
+        } else {
+            return None;
+        };
 
         match token.kind {
             TokenKind::Literal(literal) => {
@@ -367,9 +402,9 @@ where
                 self.expected.clear();
                 self.last_span = token.span;
 
-                Ok(Some(literal))
+                Some(literal)
             }
-            _ => Ok(None),
+            _ => None,
         }
     }
 
@@ -378,11 +413,30 @@ where
         self.make_item_or_err(item)
     }
 
-    fn fill_buffer(&mut self) {
+    pub fn skip_tokens(&mut self, mut f: impl FnMut(&Token) -> bool) {
+        self.expected.clear();
+
+        while let Some(token) = self.next() {
+            if !f(&token) {
+                break;
+            }
+
+            self.token_buffer.pop_front();
+            self.last_span = token.span;
+        }
+    }
+
+    fn fill_buffer(&mut self) -> bool {
         let token = if let Some(token) = self.token_stream.next() {
-            token
+            match token.kind {
+                TokenKind::Whitespace | TokenKind::Comment => {
+                    self.last_span = token.span;
+                    return true;
+                }
+                _ => token,
+            }
         } else {
-            return;
+            return false;
         };
 
         match self.unglue_tokens {
@@ -393,14 +447,16 @@ where
                 self.token_buffer.push_back(token);
             }
         }
+
+        true
     }
 
     fn fetch_tokens(&mut self, min_len: usize) {
-        if min_len <= self.token_buffer.len() {
-            return;
+        while self.token_buffer.len() < min_len {
+            if !self.fill_buffer() {
+                break;
+            }
         }
-
-        self.fill_buffer();
     }
 
     fn current_pos(&mut self) -> Pos {
@@ -415,20 +471,6 @@ where
     fn next(&mut self) -> Option<Token> {
         self.fetch_tokens(1);
         self.token_buffer.front().cloned()
-    }
-
-    fn next_or_err(&mut self) -> Result<Token, ()> {
-        match self.next() {
-            Some(front) => Ok(front),
-            None => {
-                self.diagnostics.error(
-                    self.diagnostics.file().span_end(),
-                    self.make_expected_but_found_err(TokenType::Eof),
-                );
-                self.expected.clear();
-                Err(())
-            }
-        }
     }
 
     fn make_expected_but_found_err(&mut self, found: TokenType) -> String {
@@ -474,16 +516,23 @@ where
         }
     }
 
-    fn make_item_or_err<U>(&mut self, item: Result<Option<U>, ()>) -> Result<U, ()> {
-        item.and_then(|item| {
-            item.ok_or_else(|| {
-                let token = self.next_or_err().unwrap();
-                self.diagnostics.error(
-                    token.span,
-                    self.make_expected_but_found_err(TokenType::Token(token.kind)),
-                );
-                self.expected.clear();
-            })
+    fn make_item_or_err<U>(&mut self, item: Option<U>) -> Result<U, ()> {
+        item.ok_or_else(|| {
+            match self.next() {
+                Some(token) => {
+                    self.diagnostics.error(
+                        token.span,
+                        self.make_expected_but_found_err(TokenType::Token(token.kind)),
+                    );
+                }
+                None => {
+                    self.diagnostics.error(
+                        self.diagnostics.file().span_end(),
+                        self.make_expected_but_found_err(TokenType::Eof),
+                    );
+                }
+            }
+            self.expected.clear();
         })
     }
 

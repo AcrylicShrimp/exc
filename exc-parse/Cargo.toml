@@ -12,3 +12,6 @@ exc-symbol = { path = "../exc-symbol" }
 
 lazy_static = { version = "1" }
 unicode-xid = { version = "0.2" }
+
+[dev-dependencies]
+tokio = { version = "1.34", features = ["macros", "rt"] }

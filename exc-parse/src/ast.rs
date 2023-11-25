@@ -2,12 +2,12 @@ mod node_id;
 mod node_id_allocator;
 mod punctuated;
 
-use exc_diagnostic::DiagnosticsSender;
 pub use node_id::*;
 pub use node_id_allocator::*;
 pub use punctuated::*;
 
 use crate::{Token, TokenKind, TokenLiteral};
+use exc_diagnostic::DiagnosticsSender;
 use exc_span::Span;
 use exc_symbol::Symbol;
 
@@ -34,9 +34,9 @@ pub struct ASTModuleItem {
 #[derive(Debug, Clone, Hash)]
 pub enum ASTModuleItemKind {
     Use(ASTUse),
-    TypeDef(ASTTypeDef),
+    AliasDef(ASTAliasDef),
     ModuleDef(ASTModuleDef),
-    ExternBlockDef(ASTExternBlockDef),
+    ExternBlock(ASTExternBlock),
     FnDef(ASTFnDef),
     StructDef(ASTStructDef),
     InterfaceDef(ASTInterfaceDef),
@@ -109,8 +109,8 @@ pub struct ASTUsePathItemSingle {
 pub struct ASTUsePathItemSingleAlias {
     pub id: NodeId,
     pub span: Span,
-    pub token_as: Token, // as
-    pub identifier: Id,  // identifier
+    pub keyword_as: Id, // as
+    pub identifier: Id, // identifier
 }
 
 #[derive(Debug, Clone, Hash)]
@@ -123,13 +123,13 @@ pub struct ASTUsePathItemGroup {
 }
 
 #[derive(Debug, Clone, Hash)]
-pub struct ASTTypeDef {
+pub struct ASTAliasDef {
     pub id: NodeId,
     pub span: Span,
     pub keyword_pub: Option<Id>, // pub
-    pub keyword_type: Id,        // type
+    pub keyword_alias: Id,       // alias
     pub identifier: Id,          // identifier
-    pub token_equal: Token,      // =
+    pub token_assign: Token,     // =
     pub ty: ASTTy,               // ty
     pub token_semicolon: Token,  // ;
 }
@@ -142,49 +142,47 @@ pub struct ASTModuleDef {
     pub keyword_module: Id,      // module
     pub identifier: Id,          // identifier
     pub token_brace_open: Token, // {
-    pub top_levels: Vec<ASTModuleItem>,
+    pub items: Vec<ASTModuleItem>,
     pub token_brace_close: Token, // }
 }
 
 #[derive(Debug, Clone, Hash)]
-pub struct ASTExternBlockDef {
+pub struct ASTExternBlock {
     pub id: NodeId,
     pub span: Span,
     pub keyword_extern: Id,      // extern
     pub token_brace_open: Token, // {
-    pub items: Vec<ASTExternBlockDefItem>,
+    pub items: Vec<ASTExternBlockItem>,
     pub token_brace_close: Token, // }
 }
 
 #[derive(Debug, Clone, Hash)]
-pub struct ASTExternBlockDefItem {
+pub struct ASTExternBlockItem {
     pub id: NodeId,
     pub span: Span,
-    pub kind: ASTExternBlockDefItemKind,
+    pub kind: ASTExternBlockItemKind,
 }
 
 #[derive(Debug, Clone, Hash)]
-pub enum ASTExternBlockDefItemKind {
-    FnDecl(ASTFnDecl),
+pub enum ASTExternBlockItemKind {
+    PrototypeDef(ASTPrototypeDef),
     FnDef(ASTFnDef),
     StructDef(ASTStructDef),
     ImplBlock(ASTImplBlock),
 }
 
 #[derive(Debug, Clone, Hash)]
-pub struct ASTFnDecl {
+pub struct ASTPrototypeDef {
     pub id: NodeId,
     pub span: Span,
-    pub keyword_pub: Option<Id>,                // pub
-    pub keyword_fn: Id,                         // fn
-    pub identifier: Id,                         // identifier
-    pub generic_param: Option<ASTGenericParam>, // <...>
-    pub token_paren_open: Token,                // (
-    pub params: Punctuated<ASTFnParam, { PUNCUATION_KIND_COMMA }>,
-    pub token_paren_close: Token,               // )
-    pub result: Option<ASTFnResult>,            // -> path::to::type::Type<...>
-    pub generic_where: Option<ASTGenericWhere>, // where ...
-    pub token_semicolon: Token,                 // ;
+    pub keyword_pub: Option<Id>,                                   // pub
+    pub keyword_prototype: Id,                                     // prototype
+    pub identifier: Id,                                            // identifier
+    pub token_paren_open: Token,                                   // (
+    pub params: Punctuated<ASTFnParam, { PUNCUATION_KIND_COMMA }>, // ...
+    pub token_paren_close: Token,                                  // )
+    pub result: Option<ASTFnResult>,                               // -> ty
+    pub token_semicolon: Token,                                    // ;
 }
 
 #[derive(Debug, Clone, Hash)]
@@ -253,8 +251,35 @@ pub struct ASTInterfaceDef {
     pub generic_param: Option<ASTGenericParam>, // <...>
     pub generic_where: Option<ASTGenericWhere>, // where ...
     pub token_brace_open: Token,                // {
-    pub items: Vec<ASTFnDecl>,
-    pub token_brace_close: Token, // }
+    pub items: Vec<ASTInterfaceDefItem>,        // ...
+    pub token_brace_close: Token,               // }
+}
+
+#[derive(Debug, Clone, Hash)]
+pub struct ASTInterfaceDefItem {
+    pub id: NodeId,
+    pub span: Span,
+    pub kind: ASTInterfaceDefItemKind,
+}
+
+#[derive(Debug, Clone, Hash)]
+pub enum ASTInterfaceDefItemKind {
+    FnDecl(ASTInterfaceDefItemFnDecl),
+}
+
+#[derive(Debug, Clone, Hash)]
+pub struct ASTInterfaceDefItemFnDecl {
+    pub id: NodeId,
+    pub span: Span,
+    pub keyword_fn: Id,                                            // fn
+    pub identifier: Id,                                            // identifier
+    pub generic_param: Option<ASTGenericParam>,                    // <...>
+    pub token_paren_open: Token,                                   // (
+    pub params: Punctuated<ASTFnParam, { PUNCUATION_KIND_COMMA }>, // identifier: ty, ...
+    pub token_paren_close: Token,                                  // )
+    pub result: Option<ASTFnResult>,                               // -> ty
+    pub generic_where: Option<ASTGenericWhere>,                    // where ...
+    pub token_semicolon: Token,                                    // ;
 }
 
 #[derive(Debug, Clone, Hash)]
@@ -262,12 +287,13 @@ pub struct ASTImplBlock {
     pub id: NodeId,
     pub span: Span,
     pub keyword_impl: Id,                         // impl
+    pub generic_param: Option<ASTGenericParam>,   // <...>
     pub ty: ASTTy,                                // ty
     pub interface: Option<ASTImplBlockInterface>, // interface path::to::interface
     pub generic_where: Option<ASTGenericWhere>,   // where ...
     pub token_brace_open: Token,                  // {
-    pub items: Vec<ASTImplBlockItem>,
-    pub token_brace_close: Token, // }
+    pub items: Vec<ASTImplBlockItem>,             // ...
+    pub token_brace_close: Token,                 // }
 }
 
 #[derive(Debug, Clone, Hash)]

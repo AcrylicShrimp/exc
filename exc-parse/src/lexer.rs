@@ -58,22 +58,18 @@ fn unglued_token_iter(file: &SourceFile) -> impl Iterator<Item = Token> + '_ {
 
         low += length;
 
-        match token {
-            Some(token) => {
-                return Some(token);
-            }
-            None => {}
-        }
+        return Some(token);
     })
 }
 
-fn convert(token: LowToken, low: Pos, file: &SourceFile) -> Option<Token> {
+fn convert(token: LowToken, low: Pos, file: &SourceFile) -> Token {
     let span = Span::new(low, low + token.len);
     let kind = match token.kind {
-        LowTokenKind::Whitespace | LowTokenKind::Comment => return None,
         LowTokenKind::Unknown => TokenKind::Unknown {
             symbol: Symbol::from_str(file.slice(span)),
         },
+        LowTokenKind::Whitespace => TokenKind::Whitespace,
+        LowTokenKind::Comment => TokenKind::Comment,
         LowTokenKind::OpenParen => TokenKind::OpenParen,
         LowTokenKind::CloseParen => TokenKind::CloseParen,
         LowTokenKind::OpenBrace => TokenKind::OpenBrace,
@@ -150,5 +146,6 @@ fn convert(token: LowToken, low: Pos, file: &SourceFile) -> Option<Token> {
             TokenKind::Literal(literal)
         }
     };
-    Some(Token::new(span, kind))
+
+    Token::new(span, kind)
 }

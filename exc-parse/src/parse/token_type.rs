@@ -19,8 +19,8 @@ pub enum TokenType {
 impl Display for TokenType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            TokenType::Token(kind) => write!(f, "`{}`", kind.into_symbol()),
-            TokenType::Keyword(keyword) => write!(f, "`{keyword}`"),
+            TokenType::Token(kind) => write!(f, "{}", kind.into_symbol()),
+            TokenType::Keyword(keyword) => write!(f, "{keyword}"),
             TokenType::AssignmentOp => write!(f, "an assignment operator"),
             TokenType::UnaryOp => write!(f, "an unary operator"),
             TokenType::BinaryOp => write!(f, "a binary operator"),

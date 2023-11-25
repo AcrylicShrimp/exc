@@ -3,6 +3,7 @@ use lazy_static::lazy_static;
 
 lazy_static! {
     pub static ref UNKNOWN: Symbol = Symbol::from_str("unknown");
+    pub static ref WHITESPACE: Symbol = Symbol::from_str("whitespace");
     pub static ref COMMENT: Symbol = Symbol::from_str("comment");
     pub static ref OPEN_PAREN: Symbol = Symbol::from_str("(");
     pub static ref CLOSE_PAREN: Symbol = Symbol::from_str(")");
@@ -54,14 +55,24 @@ lazy_static! {
     pub static ref LOG_AND: Symbol = Symbol::from_str("&&");
     pub static ref BIT_NOT: Symbol = Symbol::from_str("~");
     pub static ref LOG_NOT: Symbol = Symbol::from_str("!");
-    pub static ref MODULE_MEMBER: Symbol = Symbol::from_str("::");
+    pub static ref PATH_SEP: Symbol = Symbol::from_str("::");
     pub static ref ID: Symbol = Symbol::from_str("identifier");
     pub static ref LITERAL: Symbol = Symbol::from_str("literal");
 }
 
 lazy_static! {
+    pub static ref KEYWORD_USE: Symbol = Symbol::from_str("use");
+    pub static ref KEYWORD_SELF: Symbol = Symbol::from_str("self");
+    pub static ref KEYWORD_SUPER: Symbol = Symbol::from_str("super");
+    pub static ref KEYWORD_ALIAS: Symbol = Symbol::from_str("alias");
+    pub static ref KEYWORD_MODULE: Symbol = Symbol::from_str("module");
+    pub static ref KEYWORD_EXTERN: Symbol = Symbol::from_str("extern");
+    pub static ref KEYWORD_PROTOTYPE: Symbol = Symbol::from_str("prototype");
     pub static ref KEYWORD_FN: Symbol = Symbol::from_str("fn");
     pub static ref KEYWORD_STRUCT: Symbol = Symbol::from_str("struct");
+    pub static ref KEYWORD_INTERFACE: Symbol = Symbol::from_str("interface");
+    pub static ref KEYWORD_IMPL: Symbol = Symbol::from_str("impl");
+    pub static ref KEYWORD_PUB: Symbol = Symbol::from_str("pub");
     pub static ref KEYWORD_WHERE: Symbol = Symbol::from_str("where");
     pub static ref KEYWORD_LET: Symbol = Symbol::from_str("let");
     pub static ref KEYWORD_IF: Symbol = Symbol::from_str("if");

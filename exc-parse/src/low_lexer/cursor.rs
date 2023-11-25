@@ -17,6 +17,10 @@ impl<'s> Cursor<'s> {
         }
     }
 
+    pub fn is_exists(&self) -> bool {
+        !self.chars.as_str().is_empty()
+    }
+
     pub fn len_consumed(&self) -> u32 {
         self.initial_length - self.chars.as_str().len() as u32
     }

@@ -92,7 +92,7 @@ fn next(input: impl AsRef<str>) -> LowToken {
 }
 
 fn consume_while(cursor: &mut Cursor, mut pred: impl FnMut(char) -> bool) {
-    while pred(cursor.first()) {
+    while cursor.is_exists() && pred(cursor.first()) {
         cursor.consume();
     }
 }
