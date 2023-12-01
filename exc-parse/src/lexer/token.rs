@@ -134,16 +134,6 @@ impl Token {
 
     pub fn unglue(self, unglued_tokens: &mut VecDeque<Self>) {
         match self.kind {
-            TokenKind::Arrow => {
-                unglued_tokens.push_back(Self {
-                    span: Span::new(self.span.low, self.span.low + 1),
-                    kind: TokenKind::Sub,
-                });
-                unglued_tokens.push_back(Self {
-                    span: Span::new(self.span.low + 1, self.span.low + 2),
-                    kind: TokenKind::Gt,
-                });
-            }
             TokenKind::AssignAdd => {
                 unglued_tokens.push_back(Self {
                     span: Span::new(self.span.low, self.span.low + 1),
@@ -393,6 +383,7 @@ impl Token {
             | TokenKind::Comma
             | TokenKind::Colon
             | TokenKind::Semicolon
+            | TokenKind::Arrow
             | TokenKind::Assign
             | TokenKind::Lt
             | TokenKind::Gt
