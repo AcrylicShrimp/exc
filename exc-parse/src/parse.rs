@@ -1066,6 +1066,9 @@ where
         let mut stmts = Vec::new();
 
         while self.is_exists() && !self.lookup_kind(0, TokenKind::CloseBrace) {
+            // eat semicolons if any
+            self.skip_tokens(|token| token.kind == TokenKind::Semicolon);
+
             match self.parse_stmt() {
                 Ok(stmt) => {
                     stmts.push(stmt);
