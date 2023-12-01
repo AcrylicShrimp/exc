@@ -41,8 +41,10 @@ async fn test_module_item_use() {
     let ast = parse_module_for_test(CONTENT).await;
     assert_eq!(ast.items.len(), 32);
 
-    match ast.items[0].kind {
-        ASTModuleItemKind::Use(_) => {}
-        _ => panic!("expected use module item"),
+    for item in ast.items.iter() {
+        match item.kind {
+            ASTModuleItemKind::Use(_) => {}
+            _ => panic!("expected use module item"),
+        }
     }
 }

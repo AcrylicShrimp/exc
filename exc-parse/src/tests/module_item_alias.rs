@@ -17,8 +17,10 @@ async fn test_module_item_alias() {
     let ast = parse_module_for_test(CONTENT).await;
     assert_eq!(ast.items.len(), 8);
 
-    match ast.items[0].kind {
-        ASTModuleItemKind::AliasDef(_) => {}
-        _ => panic!("expected alias module item"),
+    for item in ast.items.iter() {
+        match item.kind {
+            ASTModuleItemKind::AliasDef(_) => {}
+            _ => panic!("expected alias module item"),
+        }
     }
 }
