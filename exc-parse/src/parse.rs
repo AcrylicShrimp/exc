@@ -243,9 +243,12 @@ where
                     self.skip_tokens(|token| {
                         before_use_path_item_group_item(token) && before_module_item(token)
                     });
-                    // eat commas if any
-                    self.skip_tokens(|token| token.kind == TokenKind::Comma);
-                    continue;
+
+                    if self.kind(TokenKind::Comma).is_some() {
+                        continue; // comma found, continue
+                    } else {
+                        break; // comma not found, break
+                    }
                 }
             };
 
@@ -407,9 +410,12 @@ where
                             && before_extern_block_item(token)
                             && before_module_item(token)
                     });
-                    // eat commas if any
-                    self.skip_tokens(|token| token.kind == TokenKind::Comma);
-                    continue;
+
+                    if self.kind(TokenKind::Comma).is_some() {
+                        continue; // comma found, continue
+                    } else {
+                        break; // comma not found, break
+                    }
                 }
             };
 
@@ -475,9 +481,12 @@ where
                             && before_extern_block_item(token)
                             && before_module_item(token)
                     });
-                    // eat commas if any
-                    self.skip_tokens(|token| token.kind == TokenKind::Comma);
-                    continue;
+
+                    if self.kind(TokenKind::Comma).is_some() {
+                        continue; // comma found, continue
+                    } else {
+                        break; // comma not found, break
+                    }
                 }
             };
 
@@ -583,9 +592,12 @@ where
                             && before_extern_block_item(token)
                             && before_module_item(token)
                     });
-                    // eat commas if any
-                    self.skip_tokens(|token| token.kind == TokenKind::Comma);
-                    continue;
+
+                    if self.kind(TokenKind::Comma).is_some() {
+                        continue; // comma found, continue
+                    } else {
+                        break; // comma not found, break
+                    }
                 }
             };
 
@@ -719,9 +731,12 @@ where
                             && before_interface_item(token)
                             && before_module_item(token)
                     });
-                    // eat commas if any
-                    self.skip_tokens(|token| token.kind == TokenKind::Comma);
-                    continue;
+
+                    if self.kind(TokenKind::Comma).is_some() {
+                        continue; // comma found, continue
+                    } else {
+                        break; // comma not found, break
+                    }
                 }
             };
 
@@ -863,9 +878,12 @@ where
                             && before_extern_block_item(token)
                             && before_module_item(token)
                     });
-                    // eat commas if any
-                    self.skip_tokens(|token| token.kind == TokenKind::Comma);
-                    continue;
+
+                    if self.kind(TokenKind::Comma).is_some() {
+                        continue; // comma found, continue
+                    } else {
+                        break; // comma not found, break
+                    }
                 }
             };
             let punctuation = self.kind(TokenKind::Comma);
@@ -920,9 +938,12 @@ where
                             && before_extern_block_item(token)
                             && before_module_item(token)
                     });
-                    // eat commas if any
-                    self.skip_tokens(|token| token.kind == TokenKind::Comma);
-                    continue;
+
+                    if self.kind(TokenKind::Comma).is_some() {
+                        continue; // comma found, continue
+                    } else {
+                        break; // comma not found, break
+                    }
                 }
             };
             let punctuation = self.kind(TokenKind::Comma);
@@ -1026,9 +1047,12 @@ where
                             && before_extern_block_item(token)
                             && before_module_item(token)
                     });
-                    // eat commas if any
-                    self.skip_tokens(|token| token.kind == TokenKind::Comma);
-                    continue;
+
+                    if self.kind(TokenKind::Comma).is_some() {
+                        continue; // comma found, continue
+                    } else {
+                        break; // comma not found, break
+                    }
                 }
             };
 
@@ -1647,9 +1671,12 @@ where
                             && before_extern_block_item(token)
                             && before_module_item(token)
                     });
-                    // eat commas if any
-                    self.skip_tokens(|token| token.kind == TokenKind::Comma);
-                    continue;
+
+                    if self.kind(TokenKind::Comma).is_some() {
+                        continue; // comma found, continue
+                    } else {
+                        break; // comma not found, break
+                    }
                 }
             };
 
@@ -1759,32 +1786,16 @@ where
     }
 
     pub fn parse_expr_single_item(&mut self) -> Result<ASTExpr, ()> {
-        let path = self.parse_path()?;
+        if self.lookup_identifier(0) {
+            let path = self.parse_path()?;
 
-        if self.lookup_kind(0, TokenKind::OpenBrace) {
-            self.parse_expr_struct_literal(path)
+            if self.lookup_kind(0, TokenKind::OpenBrace) {
+                self.parse_expr_struct_literal(path)
+            } else {
+                self.parse_expr_path(path)
+            }
         } else {
-            self.parse_expr_path(path)
-        }
-    }
-
-    pub fn parse_expr_path(&mut self, path: ASTPath) -> Result<ASTExpr, ()> {
-        let (id, _) = self.new_node();
-
-        Ok(self.wrap_expr_path(ASTExprPath {
-            id,
-            span: self.make_span(path.span.low),
-            path,
-        }))
-    }
-
-    fn wrap_expr_path(&mut self, expr: ASTExprPath) -> ASTExpr {
-        let (id, _) = self.new_node();
-
-        ASTExpr {
-            id,
-            span: expr.span,
-            kind: ASTExprKind::Path(expr),
+            self.parse_expr_literal()
         }
     }
 
@@ -1827,9 +1838,12 @@ where
                             && before_extern_block_item(token)
                             && before_module_item(token)
                     });
-                    // eat commas if any
-                    self.skip_tokens(|token| token.kind == TokenKind::Comma);
-                    continue;
+
+                    if self.kind(TokenKind::Comma).is_some() {
+                        continue; // comma found, continue
+                    } else {
+                        break; // comma not found, break
+                    }
                 }
             };
 
@@ -1884,6 +1898,26 @@ where
             token_colon,
             expr,
         })
+    }
+
+    pub fn parse_expr_path(&mut self, path: ASTPath) -> Result<ASTExpr, ()> {
+        let (id, _) = self.new_node();
+
+        Ok(self.wrap_expr_path(ASTExprPath {
+            id,
+            span: self.make_span(path.span.low),
+            path,
+        }))
+    }
+
+    fn wrap_expr_path(&mut self, expr: ASTExprPath) -> ASTExpr {
+        let (id, _) = self.new_node();
+
+        ASTExpr {
+            id,
+            span: expr.span,
+            kind: ASTExprKind::Path(expr),
+        }
     }
 
     pub fn parse_path(&mut self) -> Result<ASTPath, ()> {
@@ -2020,9 +2054,12 @@ where
                             && before_extern_block_item(token)
                             && before_module_item(token)
                     });
-                    // eat commas if any
-                    self.skip_tokens(|token| token.kind == TokenKind::Comma);
-                    continue;
+
+                    if self.kind(TokenKind::Comma).is_some() {
+                        continue; // comma found, continue
+                    } else {
+                        break; // comma not found, break
+                    }
                 }
             };
 
