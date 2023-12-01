@@ -1,4 +1,4 @@
-mod stmt_use;
+mod module_item_alias;
 mod module_item_use;
 
 use crate::{parse_module, token_iter, ASTModule, NodeIdAllocator};
