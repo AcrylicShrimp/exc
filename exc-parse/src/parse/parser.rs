@@ -41,7 +41,6 @@ where
         self.diagnostics
     }
 
-    // TODO: make this recoverable
     pub fn set_unglue_tokens(&mut self, unglue_tokens: bool) -> bool {
         let prev = self.unglue_tokens;
         self.unglue_tokens = unglue_tokens;
