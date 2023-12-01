@@ -1862,7 +1862,7 @@ where
     pub fn parse_path_segment(&mut self) -> Result<ASTPathSegment, ()> {
         let (id, pos) = self.new_node();
         let identifier = self.identifier_or_err()?;
-        let generic = if self.lookup_kind(0, TokenKind::OpenParen) {
+        let generic = if self.lookup_kind(0, TokenKind::Lt) {
             Some(self.parse_generic_arg()?)
         } else {
             None
