@@ -8,14 +8,26 @@ async fn test_module_item_fn() {
     fn foo() -> path::subpath::subsubpath {}
     fn foo() -> path::subpath::subsubpath<generic_param::sub_param>::subsubsubpath {}
     fn foo<T>() -> path::subpath::subsubpath<generic_param::sub_param>::subsubsubpath where T: path::to::interface {}
+    fn foo<T>() -> path::subpath::subsubpath<generic_param::sub_param>::subsubsubpath where T: path::to::interface + path::to::interface {}
+    fn foo<T>() -> path::subpath::subsubpath<generic_param::sub_param>::subsubsubpath where T: path::to::interface, {}
+    fn foo<T>() -> path::subpath::subsubpath<generic_param::sub_param>::subsubsubpath where T: path::to::interface + path::to::interface, {}
     fn foo<T, U,>() -> path::subpath::subsubpath<generic_param::sub_param>::subsubsubpath where T: path::to::interface, U: path::to::interface {}
+    fn foo<T, U,>() -> path::subpath::subsubpath<generic_param::sub_param>::subsubsubpath where T: path::to::interface, U: path::to::interface, {}
+    fn foo<T, U,>() -> path::subpath::subsubpath<generic_param::sub_param>::subsubsubpath where T: path::to::interface + path::to::interface, U: path::to::interface + path::to::interface {}
+    fn foo<T, U,>() -> path::subpath::subsubpath<generic_param::sub_param>::subsubsubpath where T: path::to::interface + path::to::interface, U: path::to::interface + path::to::interface, {}
 
     pub fn foo() {}
     pub fn foo() -> path {}
     pub fn foo() -> path::subpath::subsubpath {}
     pub fn foo() -> path::subpath::subsubpath<generic_param::sub_param>::subsubsubpath {}
     pub fn foo<T>() -> path::subpath::subsubpath<generic_param::sub_param>::subsubsubpath where T: path::to::interface {}
+    pub fn foo<T>() -> path::subpath::subsubpath<generic_param::sub_param>::subsubsubpath where T: path::to::interface + path::to::interface {}
+    pub fn foo<T>() -> path::subpath::subsubpath<generic_param::sub_param>::subsubsubpath where T: path::to::interface, {}
+    pub fn foo<T>() -> path::subpath::subsubpath<generic_param::sub_param>::subsubsubpath where T: path::to::interface + path::to::interface, {}
     pub fn foo<T, U,>() -> path::subpath::subsubpath<generic_param::sub_param>::subsubsubpath where T: path::to::interface, U: path::to::interface {}
+    pub fn foo<T, U,>() -> path::subpath::subsubpath<generic_param::sub_param>::subsubsubpath where T: path::to::interface, U: path::to::interface, {}
+    pub fn foo<T, U,>() -> path::subpath::subsubpath<generic_param::sub_param>::subsubsubpath where T: path::to::interface + path::to::interface, U: path::to::interface + path::to::interface {}
+    pub fn foo<T, U,>() -> path::subpath::subsubpath<generic_param::sub_param>::subsubsubpath where T: path::to::interface + path::to::interface, U: path::to::interface + path::to::interface, {}
 
     fn foo(param0: path) {}
     fn foo(param0: path::subpath::subsubpath) {}
@@ -43,7 +55,7 @@ async fn test_module_item_fn() {
 ";
 
     let ast = parse_module_for_test(CONTENT).await;
-    assert_eq!(ast.items.len(), 32);
+    assert_eq!(ast.items.len(), 44);
 
     for item in &ast.items {
         match item.kind {
