@@ -1846,6 +1846,10 @@ where
                 item: segment.into_item(),
                 punctuation: token_path_sep,
             });
+
+            let segment = self.parse_path_segment()?;
+
+            segments.push(PunctuatedItem::NotPunctuated { item: segment });
         }
 
         Ok(ASTPath {
