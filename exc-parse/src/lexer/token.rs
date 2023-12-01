@@ -380,16 +380,6 @@ impl Token {
                     kind: TokenKind::BitAnd,
                 });
             }
-            TokenKind::PathSep => {
-                unglued_tokens.push_back(Self {
-                    span: Span::new(self.span.low, self.span.low + 1),
-                    kind: TokenKind::Colon,
-                });
-                unglued_tokens.push_back(Self {
-                    span: Span::new(self.span.low + 1, self.span.low + 2),
-                    kind: TokenKind::Colon,
-                });
-            }
             TokenKind::Unknown { .. }
             | TokenKind::Whitespace
             | TokenKind::Comment
@@ -416,6 +406,7 @@ impl Token {
             | TokenKind::BitXor
             | TokenKind::BitNot
             | TokenKind::LogNot
+            | TokenKind::PathSep
             | TokenKind::Id { .. }
             | TokenKind::Literal(_) => unglued_tokens.push_back(self),
         }
