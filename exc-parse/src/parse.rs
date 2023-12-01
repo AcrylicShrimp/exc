@@ -1882,7 +1882,7 @@ where
         let (id, pos) = self.new_node();
         let kind = if self.lookup_kind(0, TokenKind::OpenParen) {
             ASTTyKind::Paren(self.parse_ty_paren()?)
-        } else if self.lookup_kind(0, TokenKind::Comma) {
+        } else if self.lookup_kind(0, TokenKind::OpenBracket) {
             self.parse_ty_span_or_array()?
         } else if self.lookup_keyword(0, *KEYWORD_FN) {
             ASTTyKind::FnPointer(self.parse_ty_fn_pointer()?)
