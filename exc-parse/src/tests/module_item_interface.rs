@@ -377,8 +377,8 @@ async fn test_module_item_interface() {
 
     for item in ast.items.iter() {
         match item.kind {
-            ASTModuleItemKind::StructDef(_) => {}
-            _ => panic!("expected struct module item"),
+            ASTModuleItemKind::InterfaceDef(_) => {}
+            _ => panic!("expected interface module item"),
         }
     }
 }
