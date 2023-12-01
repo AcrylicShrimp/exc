@@ -1,5 +1,6 @@
 mod fuzz;
 mod module_item_alias;
+mod module_item_impl;
 mod module_item_extern;
 mod module_item_fn;
 mod module_item_interface;
