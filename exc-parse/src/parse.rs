@@ -5,18 +5,19 @@ pub use parser::*;
 pub use token_type::*;
 
 use crate::{
+    before_expr, before_expr_call_item, before_expr_struct_literal_field_item,
     before_extern_block_item, before_fn_params_item, before_generic_arg_item,
     before_generic_param_item, before_generic_where_item, before_generic_where_item_condition_item,
     before_impl_block_item, before_interface_item, before_interface_item_fn_decl_params_item,
     before_module_item, before_prototype_params_item, before_stmt, before_struct_fields_item,
-    before_use_path_item_group_item, ASTAliasDef, ASTExpr, ASTExprAs, ASTExprBinary,
-    ASTExprBinaryOperator, ASTExprBinaryOperatorKind, ASTExprCall, ASTExprCallCallee, ASTExprKind,
-    ASTExprLiteral, ASTExprMember, ASTExprParen, ASTExprPath, ASTExprStructLiteral,
-    ASTExprStructLiteralField, ASTExprUnary, ASTExprUnaryOperator, ASTExprUnaryOperatorKind,
-    ASTExternBlock, ASTExternBlockItem, ASTExternBlockItemKind, ASTFnDef, ASTFnParam, ASTFnResult,
-    ASTGenericArg, ASTGenericParam, ASTGenericParamItem, ASTGenericWhere, ASTGenericWhereItem,
-    ASTGenericWhereItemCondition, ASTGenericWhereItemConditionItem, ASTImplBlock,
-    ASTImplBlockInterface, ASTImplBlockItem, ASTImplBlockItemKind, ASTInterfaceDef,
+    before_ty_fn_pointer_param_item, before_use_path_item_group_item, ASTAliasDef, ASTExpr,
+    ASTExprAs, ASTExprBinary, ASTExprBinaryOperator, ASTExprBinaryOperatorKind, ASTExprCall,
+    ASTExprCallCallee, ASTExprKind, ASTExprLiteral, ASTExprMember, ASTExprParen, ASTExprPath,
+    ASTExprStructLiteral, ASTExprStructLiteralField, ASTExprUnary, ASTExprUnaryOperator,
+    ASTExprUnaryOperatorKind, ASTExternBlock, ASTExternBlockItem, ASTExternBlockItemKind, ASTFnDef,
+    ASTFnParam, ASTFnResult, ASTGenericArg, ASTGenericParam, ASTGenericParamItem, ASTGenericWhere,
+    ASTGenericWhereItem, ASTGenericWhereItemCondition, ASTGenericWhereItemConditionItem,
+    ASTImplBlock, ASTImplBlockInterface, ASTImplBlockItem, ASTImplBlockItemKind, ASTInterfaceDef,
     ASTInterfaceDefItem, ASTInterfaceDefItemFnDecl, ASTInterfaceDefItemKind, ASTModule,
     ASTModuleDef, ASTModuleItem, ASTModuleItemKind, ASTPath, ASTPathSegment, ASTPrototypeDef,
     ASTStmt, ASTStmtAssignment, ASTStmtAssignmentOperator, ASTStmtAssignmentOperatorKind,
@@ -242,6 +243,8 @@ where
                     self.skip_tokens(|token| {
                         before_use_path_item_group_item(token) && before_module_item(token)
                     });
+                    // eat commas if any
+                    self.skip_tokens(|token| token.kind == TokenKind::Comma);
                     continue;
                 }
             };
@@ -404,6 +407,8 @@ where
                             && before_extern_block_item(token)
                             && before_module_item(token)
                     });
+                    // eat commas if any
+                    self.skip_tokens(|token| token.kind == TokenKind::Comma);
                     continue;
                 }
             };
@@ -470,6 +475,8 @@ where
                             && before_extern_block_item(token)
                             && before_module_item(token)
                     });
+                    // eat commas if any
+                    self.skip_tokens(|token| token.kind == TokenKind::Comma);
                     continue;
                 }
             };
@@ -576,6 +583,8 @@ where
                             && before_extern_block_item(token)
                             && before_module_item(token)
                     });
+                    // eat commas if any
+                    self.skip_tokens(|token| token.kind == TokenKind::Comma);
                     continue;
                 }
             };
@@ -710,6 +719,8 @@ where
                             && before_interface_item(token)
                             && before_module_item(token)
                     });
+                    // eat commas if any
+                    self.skip_tokens(|token| token.kind == TokenKind::Comma);
                     continue;
                 }
             };
@@ -849,8 +860,11 @@ where
                     self.skip_tokens(|token| {
                         before_generic_param_item(token)
                             && before_impl_block_item(token)
+                            && before_extern_block_item(token)
                             && before_module_item(token)
                     });
+                    // eat commas if any
+                    self.skip_tokens(|token| token.kind == TokenKind::Comma);
                     continue;
                 }
             };
@@ -903,8 +917,11 @@ where
                     self.skip_tokens(|token| {
                         before_generic_where_item(token)
                             && before_impl_block_item(token)
+                            && before_extern_block_item(token)
                             && before_module_item(token)
                     });
+                    // eat commas if any
+                    self.skip_tokens(|token| token.kind == TokenKind::Comma);
                     continue;
                 }
             };
@@ -1006,8 +1023,11 @@ where
                     self.skip_tokens(|token| {
                         before_generic_arg_item(token)
                             && before_impl_block_item(token)
+                            && before_extern_block_item(token)
                             && before_module_item(token)
                     });
+                    // eat commas if any
+                    self.skip_tokens(|token| token.kind == TokenKind::Comma);
                     continue;
                 }
             };
@@ -1613,7 +1633,23 @@ where
         let mut args = Vec::new();
 
         while self.is_exists() && !self.lookup_kind(0, TokenKind::CloseParen) {
-            let arg = self.parse_expr()?;
+            let arg = match self.parse_expr() {
+                Ok(arg) => arg,
+                Err(_) => {
+                    // eat erroneous tokens
+                    self.skip_tokens(|token| {
+                        before_expr_call_item(token)
+                            && before_expr(token)
+                            && before_impl_block_item(token)
+                            && before_extern_block_item(token)
+                            && before_module_item(token)
+                    });
+                    // eat commas if any
+                    self.skip_tokens(|token| token.kind == TokenKind::Comma);
+                    continue;
+                }
+            };
+
             let punctuation = self.kind(TokenKind::Comma);
 
             match punctuation {
@@ -1777,7 +1813,23 @@ where
         let mut fields = Vec::new();
 
         while self.is_exists() && !self.lookup_kind(0, TokenKind::CloseBrace) {
-            let field = self.parse_expr_struct_literal_field()?;
+            let field = match self.parse_expr_struct_literal_field() {
+                Ok(field) => field,
+                Err(_) => {
+                    // eat erroneous tokens
+                    self.skip_tokens(|token| {
+                        before_expr_struct_literal_field_item(token)
+                            && before_expr(token)
+                            && before_impl_block_item(token)
+                            && before_extern_block_item(token)
+                            && before_module_item(token)
+                    });
+                    // eat commas if any
+                    self.skip_tokens(|token| token.kind == TokenKind::Comma);
+                    continue;
+                }
+            };
+
             let punctuation = self.kind(TokenKind::Comma);
 
             match punctuation {
@@ -1954,7 +2006,23 @@ where
         let mut params = Vec::new();
 
         while self.is_exists() && !self.lookup_kind(0, TokenKind::CloseParen) {
-            let param = self.parse_ty()?;
+            let param = match self.parse_ty() {
+                Ok(param) => param,
+                Err(_) => {
+                    // eat erroneous tokens
+                    self.skip_tokens(|token| {
+                        before_ty_fn_pointer_param_item(token)
+                            && before_expr(token)
+                            && before_impl_block_item(token)
+                            && before_extern_block_item(token)
+                            && before_module_item(token)
+                    });
+                    // eat commas if any
+                    self.skip_tokens(|token| token.kind == TokenKind::Comma);
+                    continue;
+                }
+            };
+
             let punctuation = self.kind(TokenKind::Comma);
 
             match punctuation {

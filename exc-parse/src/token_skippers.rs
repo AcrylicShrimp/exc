@@ -125,3 +125,34 @@ pub fn before_stmt(token: &Token) -> bool {
         _ => true,
     }
 }
+
+pub fn before_expr(token: &Token) -> bool {
+    match token.kind {
+        TokenKind::Semicolon => false,
+        _ => true,
+    }
+}
+
+pub fn before_expr_call_item(token: &Token) -> bool {
+    match token.kind {
+        TokenKind::Comma => false,
+        TokenKind::CloseParen => false,
+        _ => true,
+    }
+}
+
+pub fn before_expr_struct_literal_field_item(token: &Token) -> bool {
+    match token.kind {
+        TokenKind::Comma => false,
+        TokenKind::CloseBrace => false,
+        _ => true,
+    }
+}
+
+pub fn before_ty_fn_pointer_param_item(token: &Token) -> bool {
+    match token.kind {
+        TokenKind::Comma => false,
+        TokenKind::CloseBrace => false,
+        _ => true,
+    }
+}
