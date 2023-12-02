@@ -6,11 +6,19 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+exc-diagnostic = { path = "./exc-diagnostic" }
+exc-parse = { path = "./exc-parse" }
+exc-resolve = { path = "./exc-resolve" }
+exc-span = { path = "./exc-span" }
+exc-symbol = { path = "./exc-symbol" }
+colored = "2"
+tokio = { version = "1.34", features = ["macros", "rt", "rt-multi-thread"] }
 
 [workspace]
 members = [
   "./exc-diagnostic",
   "./exc-parse",
+  "./exc-resolve",
   "./exc-span",
   "./exc-symbol",
 ]

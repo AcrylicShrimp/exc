@@ -10,6 +10,7 @@ use crate::{Token, TokenKind, TokenLiteral};
 use exc_diagnostic::DiagnosticsSender;
 use exc_span::Span;
 use exc_symbol::Symbol;
+use std::sync::Arc;
 
 #[derive(Debug, Clone, Copy, Hash)]
 pub struct Id {
@@ -35,7 +36,7 @@ pub struct ASTModuleItem {
 pub enum ASTModuleItemKind {
     Use(ASTUse),
     AliasDef(ASTAliasDef),
-    ModuleDef(ASTModuleDef),
+    ModuleDef(Arc<ASTModuleDef>), // it is useful to have this as an Arc for module resolution pass
     ExternBlock(ASTExternBlock),
     FnDef(ASTFnDef),
     StructDef(ASTStructDef),

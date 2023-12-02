@@ -84,7 +84,7 @@ where
         } else if self.lookup_keyword(0, *KEYWORD_MODULE)
             || (self.lookup_keyword(0, *KEYWORD_PUB) && self.lookup_keyword(1, *KEYWORD_MODULE))
         {
-            ASTModuleItemKind::ModuleDef(self.parse_module_def()?)
+            ASTModuleItemKind::ModuleDef(self.parse_module_def()?.into())
         } else if self.lookup_keyword(0, *KEYWORD_EXTERN) {
             ASTModuleItemKind::ExternBlock(self.parse_extern_block()?)
         } else if self.lookup_keyword(0, *KEYWORD_FN)

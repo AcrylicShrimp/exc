@@ -1,32 +1,19 @@
 use exc_span::{SourceFile, Span};
-use std::sync::{
-    atomic::{AtomicBool, Ordering},
-    mpsc::Sender,
-    Arc,
-};
+use std::sync::{mpsc::Sender, Arc};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct DiagnosticsSender {
-    has_error: AtomicBool,
     file: Arc<SourceFile>,
     sender: Sender<Diagnostics>,
 }
 
 impl DiagnosticsSender {
     pub fn new(file: Arc<SourceFile>, sender: Sender<Diagnostics>) -> Self {
-        Self {
-            has_error: AtomicBool::new(false),
-            file,
-            sender,
-        }
+        Self { file, sender }
     }
 
     pub fn file(&self) -> &Arc<SourceFile> {
         &self.file
-    }
-
-    pub fn has_error(&self) -> bool {
-        self.has_error.load(Ordering::Relaxed)
     }
 
     pub fn hint(&self, span: Span, message: String) {
@@ -108,7 +95,6 @@ impl DiagnosticsSender {
     }
 
     pub fn error(&self, span: Span, message: String) {
-        self.has_error.store(true, Ordering::Relaxed);
         self.sender
             .send(Diagnostics {
                 level: DiagnosticsLevel::Error,
@@ -123,7 +109,6 @@ impl DiagnosticsSender {
     }
 
     pub fn error_sub(&self, span: Span, message: String, sub_diagnostics: Vec<SubDiagnostics>) {
-        self.has_error.store(true, Ordering::Relaxed);
         self.sender
             .send(Diagnostics {
                 level: DiagnosticsLevel::Error,
@@ -138,7 +123,6 @@ impl DiagnosticsSender {
     }
 
     pub fn error_simple(&self, message: String) {
-        self.has_error.store(true, Ordering::Relaxed);
         self.sender
             .send(Diagnostics {
                 level: DiagnosticsLevel::Error,
