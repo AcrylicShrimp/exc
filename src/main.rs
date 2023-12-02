@@ -2,7 +2,7 @@ mod write_diagnostic;
 
 use exc_diagnostic::DiagnosticsSender;
 use exc_parse::{parse_module, token_iter, NodeIdAllocator};
-use exc_resolve::{resolve_modules, Module, ModuleASTKind, ModuleVisibility};
+use exc_resolve::{resolve_modules, Module, ModuleASTKind, Visibility};
 use exc_span::SourceMap;
 use std::{path::PathBuf, sync::mpsc};
 use tokio::task::spawn_blocking;
@@ -12,17 +12,15 @@ use write_diagnostic::write_diagnostic;
 async fn main() {
     const CONTENT: &'static str = "
         module test {
+            fn foo() {}
+            fn foo() {}
+            fn bar() {}
 
-
-
-
-
-
-
-
-
-            
+            module bar {
+                fn foo() {}
+            }
         }
+
         module test {}
     ";
 
@@ -41,7 +39,7 @@ async fn main() {
 
     let ast = parse_module(token_stream, &mut id_allocator, &diagnostics);
     let module = Module::new(
-        ModuleVisibility::Private,
+        Visibility::Private,
         ModuleASTKind::Module(ast.into()),
         "test.exc",
         file.clone(),

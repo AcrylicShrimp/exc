@@ -1,4 +1,5 @@
-use super::module::{Module, ModuleASTKind, ModuleVisibility};
+use super::module::{Module, ModuleASTKind};
+use crate::Visibility;
 use exc_parse::{ASTModuleDef, ASTModuleItem, ASTModuleItemKind};
 use exc_symbol::Symbol;
 use std::{
@@ -14,6 +15,10 @@ pub struct ModuleRegistry {
 impl ModuleRegistry {
     pub fn new() -> Self {
         Default::default()
+    }
+
+    pub fn modules(&self) -> impl Iterator<Item = &Arc<Module>> {
+        self.modules.values()
     }
 
     pub fn register(&mut self, module: Module) -> Arc<Module> {
@@ -38,9 +43,22 @@ impl ModuleRegistry {
                             submodule.identifier.symbol
                         ),
                         vec![{
-                            previous
-                                .diagnostics
-                                .sub_hint(previous.ast.span(), format!("previous definition here"))
+                            match &previous.ast {
+                                ModuleASTKind::Module(_) => match previous.file.path() {
+                                    Some(path) => previous.diagnostics.sub_hint_simple(format!(
+                                        "previous definition at `{}`",
+                                        path.display()
+                                    )),
+                                    None => previous.diagnostics.sub_hint_simple(format!(
+                                        "previous definition at `{}`",
+                                        previous.file.name()
+                                    )),
+                                },
+                                ModuleASTKind::Submodule(ast) => previous.diagnostics.sub_hint(
+                                    ast.identifier.span,
+                                    format!("previous definition here"),
+                                ),
+                            }
                         }],
                     );
                 }
@@ -48,9 +66,9 @@ impl ModuleRegistry {
                     entry.insert(
                         Module {
                             visibility: if submodule.keyword_pub.is_some() {
-                                ModuleVisibility::Public
+                                Visibility::Public
                             } else {
-                                ModuleVisibility::Private
+                                Visibility::Private
                             },
                             ast: ModuleASTKind::Submodule(submodule),
                             path,

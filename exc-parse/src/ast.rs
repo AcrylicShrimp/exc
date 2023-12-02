@@ -35,12 +35,12 @@ pub struct ASTModuleItem {
 #[derive(Debug, Clone, Hash)]
 pub enum ASTModuleItemKind {
     Use(ASTUse),
-    AliasDef(ASTAliasDef),
-    ModuleDef(Arc<ASTModuleDef>), // it is useful to have this as an Arc for module resolution pass
+    AliasDef(Arc<ASTAliasDef>),
+    ModuleDef(Arc<ASTModuleDef>),
     ExternBlock(ASTExternBlock),
-    FnDef(ASTFnDef),
-    StructDef(ASTStructDef),
-    InterfaceDef(ASTInterfaceDef),
+    FnDef(Arc<ASTFnDef>),
+    StructDef(Arc<ASTStructDef>),
+    InterfaceDef(Arc<ASTInterfaceDef>),
     ImplBlock(ASTImplBlock),
 }
 
@@ -166,9 +166,9 @@ pub struct ASTExternBlockItem {
 
 #[derive(Debug, Clone, Hash)]
 pub enum ASTExternBlockItemKind {
-    PrototypeDef(ASTPrototypeDef),
-    FnDef(ASTFnDef),
-    StructDef(ASTStructDef),
+    PrototypeDef(Arc<ASTPrototypeDef>),
+    FnDef(Arc<ASTFnDef>),
+    StructDef(Arc<ASTStructDef>),
     ImplBlock(ASTImplBlock),
 }
 

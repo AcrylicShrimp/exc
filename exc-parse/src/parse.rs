@@ -80,7 +80,7 @@ where
         } else if self.lookup_keyword(0, *KEYWORD_ALIAS)
             || (self.lookup_keyword(0, *KEYWORD_PUB) && self.lookup_keyword(1, *KEYWORD_ALIAS))
         {
-            ASTModuleItemKind::AliasDef(self.parse_alias_def()?)
+            ASTModuleItemKind::AliasDef(self.parse_alias_def()?.into())
         } else if self.lookup_keyword(0, *KEYWORD_MODULE)
             || (self.lookup_keyword(0, *KEYWORD_PUB) && self.lookup_keyword(1, *KEYWORD_MODULE))
         {
@@ -90,15 +90,15 @@ where
         } else if self.lookup_keyword(0, *KEYWORD_FN)
             || (self.lookup_keyword(0, *KEYWORD_PUB) && self.lookup_keyword(1, *KEYWORD_FN))
         {
-            ASTModuleItemKind::FnDef(self.parse_fn_def()?)
+            ASTModuleItemKind::FnDef(self.parse_fn_def()?.into())
         } else if self.lookup_keyword(0, *KEYWORD_STRUCT)
             || (self.lookup_keyword(0, *KEYWORD_PUB) && self.lookup_keyword(1, *KEYWORD_STRUCT))
         {
-            ASTModuleItemKind::StructDef(self.parse_struct_def()?)
+            ASTModuleItemKind::StructDef(self.parse_struct_def()?.into())
         } else if self.lookup_keyword(0, *KEYWORD_INTERFACE)
             || (self.lookup_keyword(0, *KEYWORD_PUB) && self.lookup_keyword(1, *KEYWORD_INTERFACE))
         {
-            ASTModuleItemKind::InterfaceDef(self.parse_interface_def()?)
+            ASTModuleItemKind::InterfaceDef(self.parse_interface_def()?.into())
         } else {
             ASTModuleItemKind::ImplBlock(self.parse_impl_block()?)
         };
@@ -371,15 +371,15 @@ where
         let kind = if self.lookup_keyword(0, *KEYWORD_PROTOTYPE)
             || (self.lookup_keyword(0, *KEYWORD_PUB) && self.lookup_keyword(1, *KEYWORD_PROTOTYPE))
         {
-            ASTExternBlockItemKind::PrototypeDef(self.parse_prototype_def()?)
+            ASTExternBlockItemKind::PrototypeDef(self.parse_prototype_def()?.into())
         } else if self.lookup_keyword(0, *KEYWORD_FN)
             || (self.lookup_keyword(0, *KEYWORD_PUB) && self.lookup_keyword(1, *KEYWORD_FN))
         {
-            ASTExternBlockItemKind::FnDef(self.parse_fn_def()?)
+            ASTExternBlockItemKind::FnDef(self.parse_fn_def()?.into())
         } else if self.lookup_keyword(0, *KEYWORD_STRUCT)
             || (self.lookup_keyword(0, *KEYWORD_PUB) && self.lookup_keyword(1, *KEYWORD_STRUCT))
         {
-            ASTExternBlockItemKind::StructDef(self.parse_struct_def()?)
+            ASTExternBlockItemKind::StructDef(self.parse_struct_def()?.into())
         } else {
             ASTExternBlockItemKind::ImplBlock(self.parse_impl_block()?)
         };

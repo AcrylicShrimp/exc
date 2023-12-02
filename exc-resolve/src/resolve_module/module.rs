@@ -1,14 +1,9 @@
+use crate::Visibility;
 use exc_diagnostic::DiagnosticsSender;
 use exc_parse::{ASTModule, ASTModuleDef, ASTModuleItem};
 use exc_span::{SourceFile, Span};
 use exc_symbol::Symbol;
 use std::{path::Path, sync::Arc};
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum ModuleVisibility {
-    Public,
-    Private,
-}
 
 #[derive(Debug)]
 pub enum ModuleASTKind {
@@ -34,7 +29,7 @@ impl ModuleASTKind {
 
 #[derive(Debug)]
 pub struct Module {
-    pub visibility: ModuleVisibility,
+    pub visibility: Visibility,
     pub ast: ModuleASTKind,
     pub path: Vec<Symbol>,
     pub file: Arc<SourceFile>,
@@ -43,7 +38,7 @@ pub struct Module {
 
 impl Module {
     pub fn new(
-        visibility: ModuleVisibility,
+        visibility: Visibility,
         ast: ModuleASTKind,
         base_path: impl AsRef<Path>,
         file: Arc<SourceFile>,
