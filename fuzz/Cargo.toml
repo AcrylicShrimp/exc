@@ -29,3 +29,9 @@ name = "fuzz_target_parse"
 path = "fuzz_targets/fuzz_target_parse.rs"
 test = false
 doc = false
+
+[[bin]]
+name = "fuzz_target_parse_structed"
+path = "fuzz_targets/fuzz_target_parse_structed.rs"
+test = false
+doc = false
