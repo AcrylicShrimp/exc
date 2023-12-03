@@ -83,7 +83,7 @@ async fn build(arg: &ArgMatches) -> Result<(), BuildError> {
     let mut source_file_resolver = SourceFileResolver::new(root_path);
     let root_module = source_file_resolver.resolve_file(file_name).await?;
 
-    resolve_modules(std::iter::once(root_module));
+    resolve_modules(&mut source_file_resolver, root_module).await;
 
     Ok(())
 }

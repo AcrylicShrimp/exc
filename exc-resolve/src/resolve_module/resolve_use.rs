@@ -120,7 +120,7 @@ fn resolve_use_items<'a>(
     }
 }
 
-fn resolve_full_prefix(
+pub fn resolve_full_prefix(
     module: &Module,
     base_path: &[Symbol],
     prefix: &ASTUsePathPrefix,
@@ -295,9 +295,9 @@ fn register_item(
                     )
                 },
                 {
-                target_module.diagnostics.sub_hint_simple(format!(
-                    "consider making it public, or access it in the same file"
-                ))
+                    target_module.diagnostics.sub_hint_simple(format!(
+                        "consider making it public, or access it in the same file"
+                    ))
                 },
             ],
         );

@@ -1,6 +1,2 @@
 
-module test {
-
-}
-
-use test;
+use super::submodule::{foo};

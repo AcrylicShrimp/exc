@@ -21,6 +21,10 @@ impl ModuleRegistry {
         self.modules.values()
     }
 
+    pub fn has_module(&self, path: &[Symbol]) -> bool {
+        self.modules.contains_key(path)
+    }
+
     pub fn get_module(&self, path: &[Symbol]) -> Option<&Arc<Module>> {
         self.modules.get(path)
     }

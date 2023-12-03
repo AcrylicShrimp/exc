@@ -11,6 +11,7 @@ exc-parse = { path = "../exc-parse" }
 exc-span = { path = "../exc-span" }
 exc-symbol = { path = "../exc-symbol" }
 
+async-recursion = { version = "1" }
 colored = { version = "2" }
 thiserror = { version = "1" }
 tokio = { version = "1.34", features = ["macros", "rt"] }

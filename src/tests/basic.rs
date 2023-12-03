@@ -15,5 +15,5 @@ async fn test_basic() {
         .resolve_file("basic.exc")
         .await
         .unwrap();
-    resolve_modules(std::iter::once(root_module));
+    resolve_modules(&mut source_file_resolver, root_module).await;
 }
