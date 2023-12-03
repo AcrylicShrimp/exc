@@ -165,7 +165,7 @@ fn check_module_reachability(
     target_path: &[Symbol],
     path_span: Span,
 ) -> bool {
-    for index in 1..target_path.len() {
+    for index in 1..=target_path.len() {
         let path = &target_path[..index];
         let target_module = match module_registry.get_module(path) {
             Some(module) => module,
