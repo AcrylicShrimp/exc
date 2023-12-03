@@ -271,20 +271,29 @@ fn register_item(
         }
     };
 
-    if target.visibility == Visibility::Private
-        && !Arc::ptr_eq(&target.module.file, &target_module.file)
-    {
-        target_module.diagnostics.error_sub(
+    if target.visibility == Visibility::Private && !Arc::ptr_eq(&target.module.file, &module.file) {
+        module.diagnostics.error_sub(
             identifier.span,
             format!(
-                "the symbol `{}` is not visible from this module",
+                "the symbol {} is not visible from this module",
                 identifier.symbol
             ),
-            vec![{
+            vec![
+                {
+                    target_module.diagnostics.sub_hint(
+                        target.kind.identifier().span,
+                        format!(
+                            "the symbol {} is defined here",
+                            target.kind.identifier().symbol
+                        ),
+                    )
+                },
+                {
                 target_module.diagnostics.sub_hint_simple(format!(
                     "consider making it public, or access it in the same file"
                 ))
-            }],
+                },
+            ],
         );
         return;
     }
