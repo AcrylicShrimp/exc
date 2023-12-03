@@ -68,7 +68,13 @@ fn resolve_use_items<'a>(
 
                 let identifiers =
                     if let Some(items) = global_symbol_registry.module_symbols(&target_module) {
-                        items.map(|item| item.kind.identifier()).collect::<Vec<_>>()
+                        items
+                            .filter(|item| {
+                                item.visibility == Visibility::Public
+                                    || Arc::ptr_eq(&item.module.file, &module.file)
+                            })
+                            .map(|item| item.kind.identifier())
+                            .collect::<Vec<_>>()
                     } else {
                         continue;
                     };
