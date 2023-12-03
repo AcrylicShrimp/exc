@@ -8,7 +8,7 @@ pub struct SourceMap {
 
 impl SourceMap {
     pub fn new() -> Self {
-        Self::default()
+        Default::default()
     }
 
     pub fn end_pos(&self) -> Pos {
