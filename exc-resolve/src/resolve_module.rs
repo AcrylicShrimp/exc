@@ -2,12 +2,14 @@ mod global_symbol_registry;
 mod module;
 mod module_registry;
 mod resolve_use;
+mod source_file_resolver;
 mod visibility;
 
 pub use global_symbol_registry::*;
 pub use module::*;
 pub use module_registry::*;
 pub use resolve_use::*;
+pub use source_file_resolver::*;
 pub use visibility::*;
 
 pub fn resolve_modules<'a>(modules: impl Iterator<Item = Module>) {

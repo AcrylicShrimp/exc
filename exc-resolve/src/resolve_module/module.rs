@@ -3,7 +3,7 @@ use exc_diagnostic::DiagnosticsSender;
 use exc_parse::{ASTModule, ASTModuleDef, ASTModuleItem, NodeId};
 use exc_span::{SourceFile, Span};
 use exc_symbol::Symbol;
-use std::{path::Path, sync::Arc};
+use std::sync::Arc;
 
 #[derive(Debug)]
 pub enum ModuleASTKind {
@@ -47,27 +47,16 @@ impl Module {
     pub fn new(
         visibility: Visibility,
         ast: ModuleASTKind,
-        base_path: impl AsRef<Path>,
+        path: Vec<Symbol>,
         file: Arc<SourceFile>,
         diagnostics: DiagnosticsSender,
-    ) -> Option<Self> {
-        let base_path = base_path.as_ref();
-        let relative_path = file.path()?.strip_prefix(base_path).ok()?;
-
-        let mut path = Vec::new();
-
-        for component in relative_path.components() {
-            let component = component.as_os_str().to_str()?;
-            let component = Symbol::from_str(component);
-            path.push(component);
-        }
-
-        Some(Self {
+    ) -> Self {
+        Self {
             visibility,
             ast,
             path,
             file,
             diagnostics,
-        })
+        }
     }
 }
