@@ -1,6 +1,6 @@
 use crate::{Module, Visibility};
 use exc_parse::{
-    ASTAliasDef, ASTExternBlock, ASTExternBlockItemKind, ASTFnDef, ASTInterfaceDef,
+    ASTAliasDef, ASTExternBlock, ASTExternBlockItemKind, ASTFnDef, ASTInterfaceDef, ASTModuleDef,
     ASTModuleItemKind, ASTPrototypeDef, ASTStructDef, Id, NodeId,
 };
 use exc_symbol::Symbol;
@@ -43,6 +43,7 @@ impl Hash for GlobalSymbol {
 
 #[derive(Debug, Clone)]
 pub enum GlobalSymbolKind {
+    Module(Arc<ASTModuleDef>),
     Alias(Arc<ASTAliasDef>),
     Prototype(Arc<ASTPrototypeDef>),
     Fn(Arc<ASTFnDef>),
@@ -53,6 +54,7 @@ pub enum GlobalSymbolKind {
 impl GlobalSymbolKind {
     pub fn id(&self) -> NodeId {
         match self {
+            GlobalSymbolKind::Module(ast) => ast.id,
             GlobalSymbolKind::Alias(ast) => ast.id,
             GlobalSymbolKind::Prototype(ast) => ast.id,
             GlobalSymbolKind::Fn(ast) => ast.id,
@@ -63,12 +65,19 @@ impl GlobalSymbolKind {
 
     pub fn identifier(&self) -> Id {
         match self {
+            GlobalSymbolKind::Module(ast) => ast.identifier,
             GlobalSymbolKind::Alias(ast) => ast.identifier,
             GlobalSymbolKind::Prototype(ast) => ast.identifier,
             GlobalSymbolKind::Fn(ast) => ast.identifier,
             GlobalSymbolKind::Struct(ast) => ast.identifier,
             GlobalSymbolKind::Interface(ast) => ast.identifier,
         }
+    }
+}
+
+impl From<Arc<ASTModuleDef>> for GlobalSymbolKind {
+    fn from(ast: Arc<ASTModuleDef>) -> Self {
+        Self::Module(ast)
     }
 }
 
@@ -137,7 +146,11 @@ impl GlobalSymbolRegistry {
                     ast.identifier,
                     ast.clone().into(),
                 ),
-                ASTModuleItemKind::ModuleDef(_) => continue,
+                ASTModuleItemKind::ModuleDef(ast) => (
+                    ast.keyword_pub.is_some(),
+                    ast.identifier,
+                    ast.clone().into(),
+                ),
                 ASTModuleItemKind::ExternBlock(ast) => {
                     self.register_extern_block(module, ast);
                     continue;
