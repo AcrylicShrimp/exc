@@ -21,6 +21,10 @@ impl ModuleRegistry {
         self.modules.values()
     }
 
+    pub fn get_module(&self, path: &[Symbol]) -> Option<&Arc<Module>> {
+        self.modules.get(path)
+    }
+
     pub fn register(&mut self, module: Module) -> Arc<Module> {
         let path = module.path.clone();
         let module = Arc::new(module);
@@ -63,20 +67,21 @@ impl ModuleRegistry {
                     );
                 }
                 Entry::Vacant(entry) => {
-                    entry.insert(
-                        Module {
-                            visibility: if submodule.keyword_pub.is_some() {
-                                Visibility::Public
-                            } else {
-                                Visibility::Private
-                            },
-                            ast: ModuleASTKind::Submodule(submodule),
-                            path,
-                            file: module.file.clone(),
-                            diagnostics: module.diagnostics.clone(),
-                        }
-                        .into(),
-                    );
+                    let module = Arc::new(Module {
+                        visibility: if submodule.keyword_pub.is_some() {
+                            Visibility::Public
+                        } else {
+                            Visibility::Private
+                        },
+                        ast: ModuleASTKind::Submodule(submodule),
+                        path,
+                        file: module.file.clone(),
+                        diagnostics: module.diagnostics.clone(),
+                    });
+
+                    entry.insert(module.clone());
+
+                    self.resolve_submodule(&module);
                 }
             }
         }

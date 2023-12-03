@@ -1,6 +1,6 @@
 use crate::Visibility;
 use exc_diagnostic::DiagnosticsSender;
-use exc_parse::{ASTModule, ASTModuleDef, ASTModuleItem};
+use exc_parse::{ASTModule, ASTModuleDef, ASTModuleItem, NodeId};
 use exc_span::{SourceFile, Span};
 use exc_symbol::Symbol;
 use std::{path::Path, sync::Arc};
@@ -12,6 +12,13 @@ pub enum ModuleASTKind {
 }
 
 impl ModuleASTKind {
+    pub fn id(&self) -> NodeId {
+        match self {
+            Self::Module(ast) => ast.id,
+            Self::Submodule(ast) => ast.id,
+        }
+    }
+
     pub fn span(&self) -> Span {
         match self {
             Self::Module(ast) => ast.span,

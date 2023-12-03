@@ -11,17 +11,24 @@ use write_diagnostic::write_diagnostic;
 #[tokio::main]
 async fn main() {
     const CONTENT: &'static str = "
-        module test {
-            fn foo() {}
-            fn foo() {}
-            fn bar() {}
+        module foo {
+            use super::test::{*, foo};
+            use bar::foo;
 
             module bar {
                 fn foo() {}
             }
         }
 
-        module test {}
+        module test {
+            fn main() {
+                foo();
+            }
+
+            fn foo() {
+
+            }
+        }
     ";
 
     let mut source_map = SourceMap::new();
@@ -39,7 +46,7 @@ async fn main() {
 
     let ast = parse_module(token_stream, &mut id_allocator, &diagnostics);
     let module = Module::new(
-        Visibility::Private,
+        Visibility::Public,
         ModuleASTKind::Module(ast.into()),
         "test.exc",
         file.clone(),

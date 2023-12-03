@@ -76,7 +76,7 @@ where
         let kind = if self.lookup_keyword(0, *KEYWORD_USE)
             || (self.lookup_keyword(0, *KEYWORD_PUB) && self.lookup_keyword(1, *KEYWORD_USE))
         {
-            ASTModuleItemKind::Use(self.parse_use()?)
+            ASTModuleItemKind::Use(self.parse_use()?.into())
         } else if self.lookup_keyword(0, *KEYWORD_ALIAS)
             || (self.lookup_keyword(0, *KEYWORD_PUB) && self.lookup_keyword(1, *KEYWORD_ALIAS))
         {

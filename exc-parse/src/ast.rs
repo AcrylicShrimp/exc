@@ -34,7 +34,7 @@ pub struct ASTModuleItem {
 
 #[derive(Debug, Clone, Hash)]
 pub enum ASTModuleItemKind {
-    Use(ASTUse),
+    Use(Arc<ASTUse>),
     AliasDef(Arc<ASTAliasDef>),
     ModuleDef(Arc<ASTModuleDef>),
     ExternBlock(ASTExternBlock),
