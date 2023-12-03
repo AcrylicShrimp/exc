@@ -1,5 +1,3 @@
-mod write_diagnostic;
-
 #[cfg(test)]
 mod tests;
 
