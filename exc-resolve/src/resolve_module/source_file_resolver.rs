@@ -79,7 +79,7 @@ impl SourceFileResolver {
 
         let mut path = Vec::new();
 
-        for component in relative_path {
+        for component in &relative_path.with_extension("") {
             let segment = component
                 .to_str()
                 .ok_or_else(|| SourceFileResolveError::InvalidUTF8(relative_path.to_owned()))?;
