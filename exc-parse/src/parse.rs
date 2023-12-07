@@ -19,19 +19,19 @@ use crate::{
     ASTGenericWhereItem, ASTGenericWhereItemCondition, ASTGenericWhereItemConditionItem,
     ASTImplBlock, ASTImplBlockInterface, ASTImplBlockItem, ASTImplBlockItemKind, ASTInterfaceDef,
     ASTInterfaceDefItem, ASTInterfaceDefItemFnDecl, ASTInterfaceDefItemKind, ASTModule,
-    ASTModuleDef, ASTModuleItem, ASTModuleItemKind, ASTPath, ASTPathSegment, ASTPrototypeDef,
-    ASTStmt, ASTStmtAssignment, ASTStmtAssignmentOperator, ASTStmtAssignmentOperatorKind,
-    ASTStmtBlock, ASTStmtBreak, ASTStmtContinue, ASTStmtExpr, ASTStmtIf, ASTStmtIfElse,
-    ASTStmtIfElseIf, ASTStmtKind, ASTStmtLet, ASTStmtLetExpr, ASTStmtLetTy, ASTStmtLoop,
-    ASTStmtReturn, ASTStmtWhile, ASTStructDef, ASTStructDefField, ASTTy, ASTTyArray,
-    ASTTyFnPointer, ASTTyKind, ASTTyParen, ASTTySpan, ASTUse, ASTUsePath, ASTUsePathItem,
-    ASTUsePathItemGroup, ASTUsePathItemKind, ASTUsePathItemSingle, ASTUsePathItemSingleAlias,
-    ASTUsePathPrefix, ASTUsePathPrefixSegment, ASTUsePathPrefixSegmentKind, NodeIdAllocator,
-    Punctuated, PunctuatedItem, Token, TokenKind, KEYWORD_ALIAS, KEYWORD_AS, KEYWORD_BREAK,
-    KEYWORD_CONTINUE, KEYWORD_ELSE, KEYWORD_EXTERN, KEYWORD_FN, KEYWORD_IF, KEYWORD_IMPL,
-    KEYWORD_INTERFACE, KEYWORD_LET, KEYWORD_LOOP, KEYWORD_MODULE, KEYWORD_PROTOTYPE, KEYWORD_PUB,
-    KEYWORD_RETURN, KEYWORD_SELF, KEYWORD_STRUCT, KEYWORD_SUPER, KEYWORD_USE, KEYWORD_WHERE,
-    KEYWORD_WHILE,
+    ASTModuleDecl, ASTModuleDef, ASTModuleItem, ASTModuleItemKind, ASTPath, ASTPathSegment,
+    ASTPrototypeDef, ASTStmt, ASTStmtAssignment, ASTStmtAssignmentOperator,
+    ASTStmtAssignmentOperatorKind, ASTStmtBlock, ASTStmtBreak, ASTStmtContinue, ASTStmtExpr,
+    ASTStmtIf, ASTStmtIfElse, ASTStmtIfElseIf, ASTStmtKind, ASTStmtLet, ASTStmtLetExpr,
+    ASTStmtLetTy, ASTStmtLoop, ASTStmtReturn, ASTStmtWhile, ASTStructDef, ASTStructDefField, ASTTy,
+    ASTTyArray, ASTTyFnPointer, ASTTyKind, ASTTyParen, ASTTySpan, ASTUse, ASTUsePath,
+    ASTUsePathItem, ASTUsePathItemGroup, ASTUsePathItemKind, ASTUsePathItemSingle,
+    ASTUsePathItemSingleAlias, ASTUsePathPrefix, ASTUsePathPrefixSegment,
+    ASTUsePathPrefixSegmentKind, NodeIdAllocator, Punctuated, PunctuatedItem, Token, TokenKind,
+    KEYWORD_ALIAS, KEYWORD_AS, KEYWORD_BREAK, KEYWORD_CONTINUE, KEYWORD_ELSE, KEYWORD_EXTERN,
+    KEYWORD_FN, KEYWORD_IF, KEYWORD_IMPL, KEYWORD_INTERFACE, KEYWORD_LET, KEYWORD_LOOP,
+    KEYWORD_MODULE, KEYWORD_PROTOTYPE, KEYWORD_PUB, KEYWORD_RETURN, KEYWORD_SELF, KEYWORD_STRUCT,
+    KEYWORD_SUPER, KEYWORD_USE, KEYWORD_WHERE, KEYWORD_WHILE,
 };
 use exc_diagnostic::DiagnosticsSender;
 
@@ -84,7 +84,7 @@ where
         } else if self.lookup_keyword(0, *KEYWORD_MODULE)
             || (self.lookup_keyword(0, *KEYWORD_PUB) && self.lookup_keyword(1, *KEYWORD_MODULE))
         {
-            ASTModuleItemKind::ModuleDef(self.parse_module_def()?.into())
+            self.parse_module_decl_or_def()?
         } else if self.lookup_keyword(0, *KEYWORD_EXTERN) {
             ASTModuleItemKind::ExternBlock(self.parse_extern_block()?)
         } else if self.lookup_keyword(0, *KEYWORD_FN)
@@ -297,39 +297,59 @@ where
         })
     }
 
-    pub fn parse_module_def(&mut self) -> Result<ASTModuleDef, ()> {
+    pub fn parse_module_decl_or_def(&mut self) -> Result<ASTModuleItemKind, ()> {
         let (id, pos) = self.new_node();
         let keyword_pub = self.keyword(*KEYWORD_PUB);
         let keyword_module = self.keyword_or_err(*KEYWORD_MODULE)?;
         let identifier = self.identifier_or_err()?;
-        let token_brace_open = self.kind_or_err(TokenKind::OpenBrace)?;
 
-        let mut items = Vec::new();
+        if self.lookup_kind(0, TokenKind::OpenBrace) {
+            let token_brace_open = self.kind_or_err(TokenKind::OpenBrace)?;
 
-        while self.is_exists() && !self.lookup_kind(0, TokenKind::CloseBrace) {
-            match self.parse_module_item() {
-                Ok(item) => {
-                    items.push(item);
-                }
-                Err(_) => {
-                    // eat erroneous tokens
-                    self.skip_tokens(|token| before_module_item(token));
+            let mut items = Vec::new();
+
+            while self.is_exists() && !self.lookup_kind(0, TokenKind::CloseBrace) {
+                match self.parse_module_item() {
+                    Ok(item) => {
+                        items.push(item);
+                    }
+                    Err(_) => {
+                        // eat erroneous tokens
+                        self.skip_tokens(|token| before_module_item(token));
+                    }
                 }
             }
+
+            let token_brace_close = self.kind_or_err(TokenKind::CloseBrace)?;
+
+            Ok(ASTModuleItemKind::ModuleDef(
+                ASTModuleDef {
+                    id,
+                    span: self.make_span(pos),
+                    keyword_pub,
+                    keyword_module,
+                    identifier,
+                    token_brace_open,
+                    items,
+                    token_brace_close,
+                }
+                .into(),
+            ))
+        } else {
+            let token_semicolon = self.kind_or_err(TokenKind::Semicolon)?;
+
+            Ok(ASTModuleItemKind::ModuleDecl(
+                ASTModuleDecl {
+                    id,
+                    span: self.make_span(pos),
+                    keyword_pub,
+                    keyword_module,
+                    identifier,
+                    token_semicolon,
+                }
+                .into(),
+            ))
         }
-
-        let token_brace_close = self.kind_or_err(TokenKind::CloseBrace)?;
-
-        Ok(ASTModuleDef {
-            id,
-            span: self.make_span(pos),
-            keyword_pub,
-            keyword_module,
-            identifier,
-            token_brace_open,
-            items,
-            token_brace_close,
-        })
     }
 
     pub fn parse_extern_block(&mut self) -> Result<ASTExternBlock, ()> {

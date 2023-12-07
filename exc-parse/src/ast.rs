@@ -36,6 +36,7 @@ pub struct ASTModuleItem {
 pub enum ASTModuleItemKind {
     Use(Arc<ASTUse>),
     AliasDef(Arc<ASTAliasDef>),
+    ModuleDecl(Arc<ASTModuleDecl>),
     ModuleDef(Arc<ASTModuleDef>),
     ExternBlock(ASTExternBlock),
     FnDef(Arc<ASTFnDef>),
@@ -79,9 +80,20 @@ pub struct ASTUsePathPrefixSegment {
 
 #[derive(Debug, Clone, Hash)]
 pub enum ASTUsePathPrefixSegmentKind {
-    Self_(Id),      // self
+    /// TODO: consider spec out `self`, as it is not needed
+    Self_(Id), // self
     Super_(Id),     // super
     Identifier(Id), // identifier
+}
+
+impl ASTUsePathPrefixSegmentKind {
+    pub fn id(&self) -> Id {
+        match self {
+            Self::Self_(id) => *id,
+            Self::Super_(id) => *id,
+            Self::Identifier(id) => *id,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Hash)]
@@ -132,6 +144,16 @@ pub struct ASTAliasDef {
     pub identifier: Id,          // identifier
     pub token_assign: Token,     // =
     pub ty: ASTTy,               // ty
+    pub token_semicolon: Token,  // ;
+}
+
+#[derive(Debug, Clone, Hash)]
+pub struct ASTModuleDecl {
+    pub id: NodeId,
+    pub span: Span,
+    pub keyword_pub: Option<Id>, // pub
+    pub keyword_module: Id,      // module
+    pub identifier: Id,          // identifier
     pub token_semicolon: Token,  // ;
 }
 
