@@ -1,6 +1,6 @@
 use super::module::{Module, ModuleASTKind};
 use crate::Visibility;
-use exc_parse::{ASTModuleDef, ASTModuleItem, ASTModuleItemKind};
+use exc_parse::{ASTModuleDecl, ASTModuleDef, ASTModuleItem, ASTModuleItemKind, NodeId};
 use exc_symbol::Symbol;
 use std::{
     collections::{hash_map::Entry, HashMap},
@@ -10,6 +10,7 @@ use std::{
 #[derive(Default, Debug)]
 pub struct ModuleRegistry {
     modules: HashMap<Vec<Symbol>, Arc<Module>>,
+    module_id_map: HashMap<NodeId, Arc<Module>>,
 }
 
 impl ModuleRegistry {
@@ -29,10 +30,15 @@ impl ModuleRegistry {
         self.modules.get(path)
     }
 
+    pub fn get_module_by_id(&self, id: NodeId) -> Option<&Arc<Module>> {
+        self.module_id_map.get(&id)
+    }
+
     pub fn register(&mut self, module: Module) -> Arc<Module> {
         let path = module.path.clone();
         let module = Arc::new(module);
         self.modules.insert(path, module.clone());
+        self.module_id_map.insert(module.ast.id(), module.clone());
         module
     }
 
@@ -84,11 +90,16 @@ impl ModuleRegistry {
                     });
 
                     entry.insert(module.clone());
+                    self.module_id_map.insert(module.ast.id(), module.clone());
 
                     self.resolve_submodule(&module);
                 }
             }
         }
+    }
+
+    pub fn register_module_decl(&mut self, ast: &ASTModuleDecl, module: Arc<Module>) {
+        self.module_id_map.insert(ast.id, module);
     }
 }
 
@@ -102,6 +113,7 @@ fn collect_submodules<'a>(
         let submodule = match &item.kind {
             ASTModuleItemKind::Use(_) => continue,
             ASTModuleItemKind::AliasDef(_) => continue,
+            ASTModuleItemKind::ModuleDecl(_) => continue,
             ASTModuleItemKind::ModuleDef(ast) => ast,
             ASTModuleItemKind::ExternBlock(_) => continue,
             ASTModuleItemKind::FnDef(_) => continue,
