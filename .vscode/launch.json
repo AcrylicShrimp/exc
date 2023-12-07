@@ -9,12 +9,7 @@
       "request": "launch",
       "name": "Debug unit tests in library 'exc-diagnostic'",
       "cargo": {
-        "args": [
-          "test",
-          "--no-run",
-          "--lib",
-          "--package=exc-diagnostic"
-        ],
+        "args": ["test", "--no-run", "--lib", "--package=exc-diagnostic"],
         "filter": {
           "name": "exc-diagnostic",
           "kind": "lib"
@@ -28,12 +23,7 @@
       "request": "launch",
       "name": "Debug unit tests in library 'exc-span'",
       "cargo": {
-        "args": [
-          "test",
-          "--no-run",
-          "--lib",
-          "--package=exc-span"
-        ],
+        "args": ["test", "--no-run", "--lib", "--package=exc-span"],
         "filter": {
           "name": "exc-span",
           "kind": "lib"
@@ -47,12 +37,7 @@
       "request": "launch",
       "name": "Debug unit tests in library 'exc-symbol'",
       "cargo": {
-        "args": [
-          "test",
-          "--no-run",
-          "--lib",
-          "--package=exc-symbol"
-        ],
+        "args": ["test", "--no-run", "--lib", "--package=exc-symbol"],
         "filter": {
           "name": "exc-symbol",
           "kind": "lib"
@@ -66,12 +51,7 @@
       "request": "launch",
       "name": "Debug unit tests in library 'exc-parse'",
       "cargo": {
-        "args": [
-          "test",
-          "--no-run",
-          "--lib",
-          "--package=exc-parse"
-        ],
+        "args": ["test", "--no-run", "--lib", "--package=exc-parse"],
         "filter": {
           "name": "exc-parse",
           "kind": "lib"
@@ -85,17 +65,13 @@
       "request": "launch",
       "name": "Debug executable 'exc'",
       "cargo": {
-        "args": [
-          "build",
-          "--bin=exc",
-          "--package=exc"
-        ],
+        "args": ["build", "--bin=exc", "--package=exc"],
         "filter": {
           "name": "exc",
           "kind": "bin"
         }
       },
-      "args": [],
+      "args": ["build", "tests/main.exc"],
       "cwd": "${workspaceFolder}"
     },
     {
@@ -103,12 +79,7 @@
       "request": "launch",
       "name": "Debug unit tests in executable 'exc'",
       "cargo": {
-        "args": [
-          "test",
-          "--no-run",
-          "--bin=exc",
-          "--package=exc"
-        ],
+        "args": ["test", "--no-run", "--bin=exc", "--package=exc"],
         "filter": {
           "name": "exc",
           "kind": "bin"
