@@ -14,7 +14,10 @@ pub use resolve_module_decl::*;
 pub use source_file_resolver::*;
 pub use visibility::*;
 
-pub async fn resolve_modules(file_resolver: &mut SourceFileResolver, root_module: Module) {
+pub async fn resolve_global(
+    file_resolver: &mut SourceFileResolver,
+    root_module: Module,
+) -> (ModuleRegistry, GlobalSymbolRegistry) {
     let mut module_registry = ModuleRegistry::new();
 
     let root_module = module_registry.register(root_module);
@@ -35,4 +38,6 @@ pub async fn resolve_modules(file_resolver: &mut SourceFileResolver, root_module
     }
 
     redirect_registry.resolve_redirects(&module_registry, &mut global_symbol_registry);
+
+    (module_registry, global_symbol_registry)
 }

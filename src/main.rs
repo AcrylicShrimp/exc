@@ -3,7 +3,7 @@ mod tests;
 
 use clap::{Arg, ArgMatches, Command};
 use colored::Colorize;
-use exc_resolve::{resolve_modules, SourceFileResolver};
+use exc_resolve::{resolve_global, SourceFileResolver};
 use std::path::PathBuf;
 use thiserror::Error;
 
@@ -83,7 +83,8 @@ async fn build(arg: &ArgMatches) -> Result<(), BuildError> {
     let mut source_file_resolver = SourceFileResolver::new(root_path);
     let root_module = source_file_resolver.resolve_file(file_name).await?;
 
-    resolve_modules(&mut source_file_resolver, root_module).await;
+    let (_module_registry, _global_symbol_registry) =
+        resolve_global(&mut source_file_resolver, root_module).await;
 
     Ok(())
 }

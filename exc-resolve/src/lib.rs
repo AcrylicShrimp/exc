@@ -1,5 +1,5 @@
-mod resolve_module;
+mod resolve_global;
 mod write_diagnostic;
 
-pub use resolve_module::*;
+pub use resolve_global::*;
 pub use write_diagnostic::*;

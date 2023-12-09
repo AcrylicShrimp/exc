@@ -1,4 +1,4 @@
-use exc_resolve::{resolve_modules, SourceFileResolver};
+use exc_resolve::{resolve_global, SourceFileResolver};
 use std::path::PathBuf;
 
 #[tokio::test]
@@ -19,5 +19,5 @@ async fn test_basic() {
     assert_eq!(root_module.path.len(), 1);
     assert_eq!(root_module.path[0].to_str(), "basic");
 
-    resolve_modules(&mut source_file_resolver, root_module).await;
+    resolve_global(&mut source_file_resolver, root_module).await;
 }
