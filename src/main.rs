@@ -81,10 +81,15 @@ async fn build(arg: &ArgMatches) -> Result<(), BuildError> {
         .ok_or_else(|| BuildError::PathHasNoFileName(absolute_path.clone()))?;
 
     let mut source_file_resolver = SourceFileResolver::new(root_path, true);
-    let root_module = source_file_resolver.resolve_file(file_name).await?;
 
-    let (_module_registry, _global_symbol_registry) =
-        resolve_global(&mut source_file_resolver, root_module).await;
+    {
+        let root_module = source_file_resolver.resolve_file(file_name).await?;
+
+        let (_module_registry, _global_symbol_registry) =
+            resolve_global(&mut source_file_resolver, root_module).await;
+    }
+
+    source_file_resolver.into_diagnostics().await;
 
     Ok(())
 }
