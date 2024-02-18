@@ -212,6 +212,7 @@ version = "0.1.0"
 dependencies = [
  "exc-span",
  "exc-symbol",
+ "tokio",
 ]
 
 [[package]]
@@ -236,6 +237,7 @@ dependencies = [
  "exc-parse",
  "exc-span",
  "exc-symbol",
+ "parking_lot",
  "thiserror",
  "tokio",
 ]

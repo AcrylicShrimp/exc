@@ -1,15 +1,13 @@
-use crate::{write_diagnostic, Module, ModuleASTKind, Visibility};
-use exc_diagnostic::DiagnosticsSender;
+use crate::{DiagnosticsReceiver, Module, ModuleASTKind, Visibility};
+use exc_diagnostic::{Diagnostics, DiagnosticsSender};
 use exc_parse::{parse_module, token_iter, NodeIdAllocator};
 use exc_span::SourceMap;
 use exc_symbol::Symbol;
 use std::{
     fs::File,
     path::{Path, PathBuf},
-    sync::mpsc,
 };
 use thiserror::Error;
-use tokio::task::spawn_blocking;
 
 #[derive(Error, Debug)]
 pub enum SourceFileResolveError {
@@ -28,10 +26,11 @@ pub struct SourceFileResolver {
     root_path: PathBuf,
     source_map: SourceMap,
     node_id_alloc: NodeIdAllocator,
+    diagnostics_receiver: DiagnosticsReceiver,
 }
 
 impl SourceFileResolver {
-    pub fn new(root_path: impl Into<PathBuf>) -> Self {
+    pub fn new(root_path: impl Into<PathBuf>, print_diagnostics: bool) -> Self {
         let root_path = root_path.into();
 
         if root_path.is_relative() {
@@ -42,7 +41,12 @@ impl SourceFileResolver {
             root_path,
             source_map: SourceMap::new(),
             node_id_alloc: NodeIdAllocator::new(),
+            diagnostics_receiver: DiagnosticsReceiver::new(print_diagnostics),
         }
+    }
+
+    pub async fn into_diagnostics(self) -> Vec<Diagnostics> {
+        self.diagnostics_receiver.into_diagnostics().await
     }
 
     pub async fn resolve_file(
@@ -67,15 +71,8 @@ impl SourceFileResolver {
         let file =
             self.source_map
                 .add_source_file(&content, file_name, Some(relative_path.to_owned()));
-        let (sender, receiver) = mpsc::channel();
-        let diagnostics = DiagnosticsSender::new(file.clone(), sender);
+        let diagnostics = DiagnosticsSender::new(file.clone(), self.diagnostics_receiver.sender());
         let token_stream = token_iter(&file);
-
-        spawn_blocking(move || {
-            while let Ok(diagnostic) = receiver.recv() {
-                write_diagnostic(&diagnostic);
-            }
-        });
 
         let mut path = Vec::new();
 

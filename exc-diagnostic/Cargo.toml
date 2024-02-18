@@ -8,3 +8,5 @@ edition = "2021"
 [dependencies]
 exc-span = { path = "../exc-span" }
 exc-symbol = { path = "../exc-symbol" }
+
+tokio = { version = "1.34", features = ["sync"] }

@@ -1,3 +1,4 @@
+mod diagnostics_receiver;
 mod global_symbol_registry;
 mod module;
 mod module_registry;
@@ -6,6 +7,7 @@ mod resolve_module_decl;
 mod source_file_resolver;
 mod visibility;
 
+pub use diagnostics_receiver::*;
 pub use global_symbol_registry::*;
 pub use module::*;
 pub use module_registry::*;

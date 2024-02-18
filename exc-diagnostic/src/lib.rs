@@ -1,14 +1,15 @@
 use exc_span::{SourceFile, Span};
-use std::sync::{mpsc::Sender, Arc};
+use std::sync::Arc;
+use tokio::sync::mpsc::UnboundedSender;
 
 #[derive(Debug, Clone)]
 pub struct DiagnosticsSender {
     file: Arc<SourceFile>,
-    sender: Sender<Diagnostics>,
+    sender: UnboundedSender<Diagnostics>,
 }
 
 impl DiagnosticsSender {
-    pub fn new(file: Arc<SourceFile>, sender: Sender<Diagnostics>) -> Self {
+    pub fn new(file: Arc<SourceFile>, sender: UnboundedSender<Diagnostics>) -> Self {
         Self { file, sender }
     }
 
