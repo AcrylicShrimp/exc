@@ -217,7 +217,7 @@ impl RedirectRegistry {
 
                         // the target module of this glob redirect is not found
                         // emit compile error
-                        let path = visualize_module_path(&redirect.module.path);
+                        let path = visualize_prefix(&redirect.prefix);
                         redirect
                             .module
                             .diagnostics
@@ -226,11 +226,11 @@ impl RedirectRegistry {
                     RedirectTarget::Single(single_target) => {
                         // all single targets should be resolved and removed during the resolution
                         // emit compile error if it is not resolved
-                        let path = visualize_module_path(&redirect.module.path);
+                        let path = visualize_prefix(&redirect.prefix);
                         redirect.module.diagnostics.error(
                             redirect.span,
                             format!(
-                                "the import of symbol {} from module `{}` is not resolved",
+                                "the symbol {} from module `{}` is not found",
                                 single_target.identifier.symbol, path
                             ),
                         );
@@ -557,6 +557,14 @@ fn check_global_symbol_visibility(module: &Module, global_symbol: &GlobalSymbol)
     );
 
     false
+}
+
+fn visualize_prefix(prefix: &[ASTUsePathPrefixSegmentKind]) -> String {
+    prefix
+        .iter()
+        .map(|segment| segment.id().symbol.to_str())
+        .collect::<Vec<_>>()
+        .join("::")
 }
 
 fn visualize_module_path(path: &[Symbol]) -> String {
