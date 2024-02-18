@@ -1,7 +1,7 @@
 use crate::tests::test_main;
 
 #[tokio::test]
-async fn test_000001() {
+async fn test_000001_no_path_traversal() {
     let diagnostics = test_main(file!()).await;
-    assert!(diagnostics.is_empty());
+    assert_eq!(diagnostics.len(), 6);
 }
