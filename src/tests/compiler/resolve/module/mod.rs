@@ -1,1 +1,3 @@
 mod test_000001_no_path_traversal;
+mod test_000002_access_sibling_module;
+mod test_000003_no_invalid_module_access;
