@@ -299,7 +299,9 @@ fn register_into(
                 // replace the previous symbol if the new symbol has higher priority
                 entry.insert(symbol);
                 return true;
-            } else if previous.level > symbol.level {
+            }
+
+            if previous.level > symbol.level {
                 // ignore the new symbol if the previous symbol has higher priority
                 return false;
             }
