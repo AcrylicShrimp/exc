@@ -19,6 +19,10 @@ pub struct Redirect {
     pub visibility: Visibility,
     pub prefix: Vec<ASTUsePathPrefixSegmentKind>,
     pub target: RedirectTarget,
+    /// whether the module this redirect points to is found at least once
+    /// if this is `false` after the resolution, it means that the redirect target is invalid
+    /// emit an error in this case
+    pub found_target_module: bool,
     pub span: Span,
 }
 
@@ -35,6 +39,7 @@ impl Redirect {
             visibility,
             prefix,
             target,
+            found_target_module: false,
             span,
         }
     }
@@ -204,19 +209,33 @@ impl RedirectRegistry {
 
         for redirects in self.redirects.values() {
             for redirect in redirects {
-                let single_target = match &redirect.target {
-                    RedirectTarget::Glob => continue,
-                    RedirectTarget::Single(single_target) => single_target,
-                };
+                match &redirect.target {
+                    RedirectTarget::Glob => {
+                        if redirect.found_target_module {
+                            continue;
+                        }
 
-                let path = visualize_module_path(&redirect.module.path);
-                redirect.module.diagnostics.error(
-                    redirect.span,
-                    format!(
-                        "the import of symbol {} from module `{}` is not resolved",
-                        single_target.identifier.symbol, path
-                    ),
-                );
+                        // the target module of this glob redirect is not found
+                        // emit compile error
+                        let path = visualize_module_path(&redirect.module.path);
+                        redirect
+                            .module
+                            .diagnostics
+                            .error(redirect.span, format!("the module `{}` is not found", path));
+                    }
+                    RedirectTarget::Single(single_target) => {
+                        // all single targets should be resolved and removed during the resolution
+                        // emit compile error if it is not resolved
+                        let path = visualize_module_path(&redirect.module.path);
+                        redirect.module.diagnostics.error(
+                            redirect.span,
+                            format!(
+                                "the import of symbol {} from module `{}` is not resolved",
+                                single_target.identifier.symbol, path
+                            ),
+                        );
+                    }
+                }
             }
         }
     }
@@ -234,7 +253,7 @@ impl RedirectRegistry {
             for redirects in self.redirects.values_mut() {
                 let mut removed_indices = Vec::new();
 
-                for (index, redirect) in redirects.iter().enumerate() {
+                for (index, redirect) in redirects.iter_mut().enumerate() {
                     let target_module = match resolve_target_module(
                         module_registry,
                         global_symbol_registry,
@@ -253,6 +272,9 @@ impl RedirectRegistry {
                         Some(target_module) => target_module,
                         None => continue,
                     };
+
+                    // we've found the target module; mark it as found
+                    redirect.found_target_module = true;
 
                     let single_target = match &redirect.target {
                         RedirectTarget::Glob => continue,
@@ -318,7 +340,7 @@ impl RedirectRegistry {
                 let mut glob_redirects = Vec::new();
                 let mut removed_indices = Vec::new();
 
-                for (index, redirect) in redirects.iter().enumerate() {
+                for (index, redirect) in redirects.iter_mut().enumerate() {
                     let target_module = match resolve_target_module(
                         module_registry,
                         global_symbol_registry,
@@ -337,6 +359,9 @@ impl RedirectRegistry {
                         Some(target_module) => target_module,
                         None => continue,
                     };
+
+                    // we've found the target module; mark it as found
+                    redirect.found_target_module = true;
 
                     match &redirect.target {
                         RedirectTarget::Glob => {}
