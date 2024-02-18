@@ -293,17 +293,14 @@ impl RedirectRegistry {
                     };
 
                     if check_global_symbol_visibility(&redirect.module, &global_symbol) {
-                        let identifier = single_target.alias.unwrap_or(single_target.identifier);
-                        let added = global_symbol_registry.register_with_rename(
-                            identifier,
-                            GlobalSymbol::new(
-                                SymbolLevel::Explicit,
-                                redirect.visibility,
-                                redirect.module.clone(),
-                                global_symbol.kind.clone(),
-                                identifier,
-                            ),
-                        );
+                        let added = global_symbol_registry.register(GlobalSymbol::new(
+                            SymbolLevel::Explicit,
+                            redirect.visibility,
+                            redirect.module.clone(),
+                            global_symbol.kind.clone(),
+                            single_target.alias.unwrap_or(single_target.identifier),
+                            redirect.module.clone(),
+                        ));
                         changed |= added;
                     }
 
@@ -407,17 +404,14 @@ impl RedirectRegistry {
                     }
 
                     for global_symbol in redirected {
-                        let identifier = global_symbol.kind.identifier();
-                        let added = global_symbol_registry.register_with_rename(
-                            identifier,
-                            GlobalSymbol::new(
-                                SymbolLevel::Glob,
-                                glob_redirect.visibility,
-                                module.clone(),
-                                global_symbol.kind.clone(),
-                                identifier,
-                            ),
-                        );
+                        let added = global_symbol_registry.register(GlobalSymbol::new(
+                            SymbolLevel::Glob,
+                            glob_redirect.visibility,
+                            module.clone(),
+                            global_symbol.kind.clone(),
+                            global_symbol.kind.identifier(),
+                            global_symbol.identifier_module.clone(),
+                        ));
                         changed |= added;
                     }
                 }

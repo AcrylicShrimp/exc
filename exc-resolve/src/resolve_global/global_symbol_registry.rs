@@ -27,6 +27,9 @@ pub struct GlobalSymbol {
     pub module: Arc<Module>,
     pub kind: GlobalSymbolKind,
     pub identifier: Id,
+    /// the module where the identifier is defined
+    /// this is required because the identifier can be defined in a different module e.g. glob-imported
+    pub identifier_module: Arc<Module>,
 }
 
 impl GlobalSymbol {
@@ -36,6 +39,7 @@ impl GlobalSymbol {
         module: Arc<Module>,
         kind: GlobalSymbolKind,
         identifier: Id,
+        identifier_module: Arc<Module>,
     ) -> Self {
         Self {
             level,
@@ -43,6 +47,7 @@ impl GlobalSymbol {
             module,
             kind,
             identifier,
+            identifier_module,
         }
     }
 }
@@ -231,6 +236,7 @@ impl GlobalSymbolRegistry {
                 module.clone(),
                 kind,
                 identifier,
+                module.clone(),
             ));
         }
     }
@@ -261,22 +267,18 @@ impl GlobalSymbolRegistry {
                 module.clone(),
                 kind,
                 identifier,
+                module.clone(),
             ));
         }
     }
 
     pub fn register(&mut self, symbol: GlobalSymbol) -> bool {
-        self.register_with_rename(symbol.kind.identifier(), symbol)
-    }
-
-    pub fn register_with_rename(&mut self, identifier: Id, symbol: GlobalSymbol) -> bool {
         register_into(
             if symbol.kind.is_module() {
                 &mut self.module_symbols
             } else {
                 &mut self.non_module_symbols
             },
-            identifier,
             symbol,
         )
     }
@@ -284,13 +286,12 @@ impl GlobalSymbolRegistry {
 
 fn register_into(
     map: &mut HashMap<NodeId, HashMap<Symbol, GlobalSymbol>>,
-    identifier: Id,
     symbol: GlobalSymbol,
 ) -> bool {
     match map
-        .entry(symbol.module.ast.id())
+        .entry(symbol.identifier_module.ast.id())
         .or_default()
-        .entry(identifier.symbol)
+        .entry(symbol.identifier.symbol)
     {
         Entry::Occupied(mut entry) => {
             let previous = entry.get();
@@ -306,7 +307,7 @@ fn register_into(
                 return false;
             }
 
-            emit_conflict_error(identifier, &symbol, previous);
+            emit_conflict_error(&symbol, previous);
             false
         }
         Entry::Vacant(entry) => {
@@ -316,10 +317,13 @@ fn register_into(
     }
 }
 
-fn emit_conflict_error(identifier: Id, symbol: &GlobalSymbol, previous: &GlobalSymbol) {
-    symbol.module.diagnostics.error_sub(
-        identifier.span,
-        format!("the symbol {} is defined multiple times", identifier.symbol),
+fn emit_conflict_error(symbol: &GlobalSymbol, previous: &GlobalSymbol) {
+    symbol.identifier_module.diagnostics.error_sub(
+        symbol.identifier.span,
+        format!(
+            "the symbol {} is defined multiple times",
+            symbol.identifier.symbol
+        ),
         vec![{
             previous.module.diagnostics.sub_hint(
                 previous.identifier.span,
