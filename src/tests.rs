@@ -7,7 +7,7 @@ mod compiler;
 
 pub async fn test_main(path: impl AsRef<Path>) -> Vec<Diagnostics> {
     let root_path = path.as_ref().parent().unwrap().canonicalize().unwrap();
-    let mut source_file_resolver = SourceFileResolver::new(root_path, false);
+    let mut source_file_resolver = SourceFileResolver::new(root_path, true);
 
     {
         let root_module = source_file_resolver.resolve_file("main.exc").await.unwrap();
