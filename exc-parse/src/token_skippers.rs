@@ -13,6 +13,7 @@ pub fn before_module_item(token: &Token) -> bool {
         TokenKind::Id { symbol } if symbol == *KEYWORD_STRUCT => false,
         TokenKind::Id { symbol } if symbol == *KEYWORD_INTERFACE => false,
         TokenKind::Id { symbol } if symbol == *KEYWORD_IMPL => false,
+        TokenKind::CloseBrace => false,
         _ => true,
     }
 }
@@ -32,6 +33,7 @@ pub fn before_extern_block_item(token: &Token) -> bool {
         TokenKind::Id { symbol } if symbol == *KEYWORD_FN => false,
         TokenKind::Id { symbol } if symbol == *KEYWORD_STRUCT => false,
         TokenKind::Id { symbol } if symbol == *KEYWORD_IMPL => false,
+        TokenKind::CloseBrace => false,
         _ => true,
     }
 }
@@ -64,6 +66,7 @@ pub fn before_interface_item(token: &Token) -> bool {
     match token.kind {
         TokenKind::Id { symbol } if symbol == *KEYWORD_PUB => false,
         TokenKind::Id { symbol } if symbol == *KEYWORD_FN => false,
+        TokenKind::CloseBrace => false,
         _ => true,
     }
 }
@@ -80,6 +83,7 @@ pub fn before_impl_block_item(token: &Token) -> bool {
     match token.kind {
         TokenKind::Id { symbol } if symbol == *KEYWORD_PUB => false,
         TokenKind::Id { symbol } if symbol == *KEYWORD_FN => false,
+        TokenKind::CloseBrace => false,
         _ => true,
     }
 }
