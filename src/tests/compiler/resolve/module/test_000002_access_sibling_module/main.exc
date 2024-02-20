@@ -1,3 +1,0 @@
-module sibling;
-
-use sibling::root_fn;

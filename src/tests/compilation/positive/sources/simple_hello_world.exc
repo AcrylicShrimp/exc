@@ -1,0 +1,7 @@
+extern {
+  prototype print(format: str);
+}
+
+fn main() {
+  print("hello, world!");
+}

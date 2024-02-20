@@ -1,0 +1,12 @@
+# unexpected token in top-level
+identifier
+
+# unexpected token in sub-module top-level
+module m1 {
+  identifier  
+}
+
+# unexpected token in extern
+extern {
+  identifier
+}

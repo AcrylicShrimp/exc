@@ -1,9 +1,0 @@
-use super;
-use super::super;
-use super::super::super;
-
-module inner {
-  use super::super;
-  use super::super::super;
-  use super::super::super::super;
-}

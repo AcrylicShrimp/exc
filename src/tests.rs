@@ -3,13 +3,20 @@ use exc_resolve::{resolve_global, SourceFileResolver};
 use std::path::Path;
 
 #[cfg(test)]
-mod compiler;
+mod compilation;
 
 pub async fn test_module(
-    path: impl AsRef<Path>,
+    file: impl AsRef<Path>,
+    sub_path: impl AsRef<Path>,
     main_file_name: impl AsRef<Path>,
 ) -> Vec<Diagnostics> {
-    let root_path = path.as_ref().parent().unwrap().canonicalize().unwrap();
+    let root_path = file
+        .as_ref()
+        .parent()
+        .unwrap()
+        .canonicalize()
+        .unwrap()
+        .join(sub_path);
     let mut source_file_resolver = SourceFileResolver::new(root_path, true);
 
     {
