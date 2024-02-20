@@ -520,12 +520,14 @@ where
             match self.next() {
                 Some(token) => {
                     self.diagnostics.error(
+                        exc_diagnostic::error_codes::UNEXPECTED_TOKEN,
                         token.span,
                         self.make_expected_but_found_err(TokenType::Token(token.kind)),
                     );
                 }
                 None => {
                     self.diagnostics.error(
+                        exc_diagnostic::error_codes::UNEXPECTED_EOF,
                         self.diagnostics.file().span_end(),
                         self.make_expected_but_found_err(TokenType::Eof),
                     );

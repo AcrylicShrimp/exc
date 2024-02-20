@@ -51,6 +51,7 @@ impl ModuleRegistry {
                     let previous = entry.get();
 
                     module.diagnostics.error_sub(
+                        exc_diagnostic::error_codes::DUPLICATED_MODULE,
                         submodule.identifier.span,
                         format!(
                             "the module {} is defined multiple times",

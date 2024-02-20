@@ -44,6 +44,7 @@ pub async fn resolve_single_module_decl(
         Err(_) => {
             // TODO: display the path in absolute form
             module.diagnostics.error(
+                exc_diagnostic::error_codes::UNREACHABLE_MODULE,
                 ast.span,
                 format!(
                     "the module {} is not reachable; failed to read file at path `{}`",

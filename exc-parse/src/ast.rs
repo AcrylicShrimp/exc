@@ -555,6 +555,7 @@ impl ASTStmtAssignmentOperatorKind {
             TokenKind::AssignBitXor => Ok(Self::BitXor),
             _ => {
                 diagnostics.error(
+                    exc_diagnostic::error_codes::INVALID_ASSIGNMENT_OPERATOR,
                     token.span,
                     format!(
                         "{} is not a valid assignment operator",
@@ -680,6 +681,7 @@ impl ASTExprBinaryOperatorKind {
             TokenKind::LogAnd => Ok(Self::LogAnd),
             _ => {
                 diagnostics.error(
+                    exc_diagnostic::error_codes::INVALID_BINARY_OPERATOR,
                     token.span,
                     format!(
                         "{} is not a valid binary operator",
@@ -738,6 +740,7 @@ impl ASTExprUnaryOperatorKind {
             TokenKind::Mul => Ok(Self::Dereference),
             _ => {
                 diagnostics.error(
+                    exc_diagnostic::error_codes::INVALID_UNARY_OPERATOR,
                     token.span,
                     format!("{} is not a valid unary operator", token.kind.into_symbol()),
                 );

@@ -2,6 +2,9 @@ use exc_span::{SourceFile, Span};
 use std::sync::Arc;
 use tokio::sync::mpsc::UnboundedSender;
 
+pub mod error_codes;
+pub mod warning_codes;
+
 #[derive(Debug, Clone)]
 pub struct DiagnosticsSender {
     file: Arc<SourceFile>,
@@ -20,6 +23,7 @@ impl DiagnosticsSender {
     pub fn hint(&self, span: Span, message: String) {
         self.sender
             .send(Diagnostics {
+                code: 0,
                 level: DiagnosticsLevel::Hint,
                 message,
                 origin: Some(DiagnosticsOrigin {
@@ -34,6 +38,7 @@ impl DiagnosticsSender {
     pub fn hint_sub(&self, span: Span, message: String, sub_diagnostics: Vec<SubDiagnostics>) {
         self.sender
             .send(Diagnostics {
+                code: 0,
                 level: DiagnosticsLevel::Hint,
                 message,
                 origin: Some(DiagnosticsOrigin {
@@ -48,6 +53,7 @@ impl DiagnosticsSender {
     pub fn hint_simple(&self, message: String) {
         self.sender
             .send(Diagnostics {
+                code: 0,
                 level: DiagnosticsLevel::Hint,
                 message,
                 origin: None,
@@ -56,9 +62,10 @@ impl DiagnosticsSender {
             .unwrap()
     }
 
-    pub fn warning(&self, span: Span, message: String) {
+    pub fn warning(&self, code: u32, span: Span, message: String) {
         self.sender
             .send(Diagnostics {
+                code,
                 level: DiagnosticsLevel::Warning,
                 message,
                 origin: Some(DiagnosticsOrigin {
@@ -70,9 +77,16 @@ impl DiagnosticsSender {
             .unwrap()
     }
 
-    pub fn warning_sub(&self, span: Span, message: String, sub_diagnostics: Vec<SubDiagnostics>) {
+    pub fn warning_sub(
+        &self,
+        code: u32,
+        span: Span,
+        message: String,
+        sub_diagnostics: Vec<SubDiagnostics>,
+    ) {
         self.sender
             .send(Diagnostics {
+                code,
                 level: DiagnosticsLevel::Warning,
                 message,
                 origin: Some(DiagnosticsOrigin {
@@ -84,9 +98,10 @@ impl DiagnosticsSender {
             .unwrap()
     }
 
-    pub fn warning_simple(&self, message: String) {
+    pub fn warning_simple(&self, code: u32, message: String) {
         self.sender
             .send(Diagnostics {
+                code,
                 level: DiagnosticsLevel::Warning,
                 message,
                 origin: None,
@@ -95,9 +110,10 @@ impl DiagnosticsSender {
             .unwrap()
     }
 
-    pub fn error(&self, span: Span, message: String) {
+    pub fn error(&self, code: u32, span: Span, message: String) {
         self.sender
             .send(Diagnostics {
+                code,
                 level: DiagnosticsLevel::Error,
                 message,
                 origin: Some(DiagnosticsOrigin {
@@ -109,9 +125,16 @@ impl DiagnosticsSender {
             .unwrap()
     }
 
-    pub fn error_sub(&self, span: Span, message: String, sub_diagnostics: Vec<SubDiagnostics>) {
+    pub fn error_sub(
+        &self,
+        code: u32,
+        span: Span,
+        message: String,
+        sub_diagnostics: Vec<SubDiagnostics>,
+    ) {
         self.sender
             .send(Diagnostics {
+                code,
                 level: DiagnosticsLevel::Error,
                 message,
                 origin: Some(DiagnosticsOrigin {
@@ -123,9 +146,10 @@ impl DiagnosticsSender {
             .unwrap()
     }
 
-    pub fn error_simple(&self, message: String) {
+    pub fn error_simple(&self, code: u32, message: String) {
         self.sender
             .send(Diagnostics {
+                code,
                 level: DiagnosticsLevel::Error,
                 message,
                 origin: None,
@@ -194,6 +218,9 @@ impl DiagnosticsSender {
 
 #[derive(Debug, Clone)]
 pub struct Diagnostics {
+    /// code of the diagnostic, 0 for helper diagnostics
+    /// in other words, warning and error diagnostics should have a non-zero code
+    pub code: u32,
     pub level: DiagnosticsLevel,
     pub message: String,
     pub origin: Option<DiagnosticsOrigin>,

@@ -218,22 +218,36 @@ impl RedirectRegistry {
                         // the target module of this glob redirect is not found
                         // emit compile error
                         let path = visualize_prefix(&redirect.prefix);
-                        redirect
-                            .module
-                            .diagnostics
-                            .error(redirect.span, format!("the module `{}` is not found", path));
+                        redirect.module.diagnostics.error(
+                            exc_diagnostic::error_codes::MODULE_NOT_FOUND,
+                            redirect.span,
+                            format!("the module `{}` is not found", path),
+                        );
                     }
                     RedirectTarget::Single(single_target) => {
                         // all single targets should be resolved and removed during the resolution
                         // emit compile error if it is not resolved
-                        let path = visualize_prefix(&redirect.prefix);
-                        redirect.module.diagnostics.error(
-                            redirect.span,
-                            format!(
-                                "the symbol {} from module `{}` is not found",
-                                single_target.identifier.symbol, path
-                            ),
-                        );
+
+                        if redirect.found_target_module {
+                            // the target module is found, but the symbol is not found
+                            let path = visualize_prefix(&redirect.prefix);
+                            redirect.module.diagnostics.error(
+                                exc_diagnostic::error_codes::SYMBOL_NOT_FOUND,
+                                redirect.span,
+                                format!(
+                                    "the symbol {} from module `{}` is not found",
+                                    single_target.identifier.symbol, path
+                                ),
+                            );
+                        } else {
+                            // the target module is not found
+                            let path = visualize_prefix(&redirect.prefix);
+                            redirect.module.diagnostics.error(
+                                exc_diagnostic::error_codes::MODULE_NOT_FOUND,
+                                redirect.span,
+                                format!("the module `{}` is not found", path),
+                            );
+                        }
                     }
                 }
             }
@@ -501,6 +515,7 @@ fn check_module_has_super(module: &Module, target_module: &Module, id: Id) -> bo
 
     let path = visualize_module_path(&target_module.path);
     module.diagnostics.error(
+        exc_diagnostic::error_codes::MODULE_HAS_NO_SUPER,
         id.span,
         format!(
             "{} is not allowed here; the module `{}` is already at root level",
@@ -520,6 +535,7 @@ fn check_module_visibility(module: &Module, target_module: &Module, span: Span) 
 
     let path = visualize_module_path(&target_module.path);
     module.diagnostics.error_sub(
+        exc_diagnostic::error_codes::MODULE_IS_NOT_VISIBLE,
         span,
         format!("the module `{}` is not visible from this module", path),
         vec![{
@@ -541,6 +557,7 @@ fn check_global_symbol_visibility(module: &Module, global_symbol: &GlobalSymbol)
 
     let path = visualize_global_symbol_path(&global_symbol);
     module.diagnostics.error_sub(
+        exc_diagnostic::error_codes::SYMBOL_IS_NOT_VISIBLE,
         global_symbol.kind.identifier().span,
         format!("the symbol `{}` is not visible from this module", path),
         vec![{

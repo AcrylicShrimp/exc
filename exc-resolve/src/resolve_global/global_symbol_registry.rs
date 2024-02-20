@@ -319,6 +319,7 @@ fn register_into(
 
 fn emit_conflict_error(symbol: &GlobalSymbol, previous: &GlobalSymbol) {
     symbol.identifier_module.diagnostics.error_sub(
+        exc_diagnostic::error_codes::DUPLICATED_SYMBOL,
         symbol.identifier.span,
         format!(
             "the symbol {} is defined multiple times",
