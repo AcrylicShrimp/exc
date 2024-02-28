@@ -1,6 +1,6 @@
 use crate::{
-    GlobalSymbol, GlobalSymbolKind, GlobalSymbolRegistry, Module, ModuleRegistry, SymbolLevel,
-    Visibility,
+    visualize_global_symbol_path, visualize_module_path, visualize_prefix, GlobalSymbol,
+    GlobalSymbolKind, GlobalSymbolRegistry, Module, ModuleRegistry, SymbolLevel, Visibility,
 };
 use exc_parse::{
     ASTModuleItemKind, ASTUsePath, ASTUsePathItemKind, ASTUsePathPrefixSegmentKind, Id, NodeId,
@@ -568,32 +568,6 @@ fn check_global_symbol_visibility(module: &Module, global_symbol: &GlobalSymbol)
     );
 
     false
-}
-
-fn visualize_prefix(prefix: &[ASTUsePathPrefixSegmentKind]) -> String {
-    prefix
-        .iter()
-        .map(|segment| segment.id().symbol.to_str())
-        .collect::<Vec<_>>()
-        .join("::")
-}
-
-fn visualize_module_path(path: &[Symbol]) -> String {
-    path.iter()
-        .map(|symbol| symbol.to_str())
-        .collect::<Vec<_>>()
-        .join("::")
-}
-
-fn visualize_global_symbol_path(global_symbol: &GlobalSymbol) -> String {
-    global_symbol
-        .module
-        .path
-        .iter()
-        .chain(std::iter::once(&global_symbol.kind.identifier().symbol))
-        .map(|symbol| symbol.to_str())
-        .collect::<Vec<_>>()
-        .join("::")
 }
 
 fn build_glob_import_blocklist(
