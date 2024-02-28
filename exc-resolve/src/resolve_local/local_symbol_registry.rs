@@ -1,4 +1,8 @@
-use crate::{GlobalSymbol, GlobalSymbolKind, GlobalSymbolRegistry, Module, ModuleRegistry};
+use crate::{
+    visualize_module_path, GlobalSymbol, GlobalSymbolKind, GlobalSymbolRegistry, Module,
+    ModuleRegistry,
+};
+use exc_diagnostic::error_codes;
 use exc_parse::{
     ASTExpr, ASTExprKind, ASTFnDef, ASTStmtBlock, ASTStmtKind, Id, NodeId, PunctuatedItem,
 };
@@ -562,7 +566,17 @@ impl LocalSymbolRegistry {
                     };
 
                     if let Some(generic) = &segment.generic {
-                        // TODO: emit compilation error; prefix cannot have generic arguments
+                        module.diagnostics.error_sub(
+                            error_codes::GENERIC_ARGUMENT_ON_PATH_PREFIX_NOT_ALLOWED,
+                            generic.span,
+                            format!("generic arguments are not allowed on prefix"),
+                            vec![{
+                                module.diagnostics.sub_hint(
+                                    generic.span,
+                                    format!("consider removing generic arguments"),
+                                )
+                            }],
+                        );
                     }
 
                     let module = match global_symbol_registry
@@ -582,7 +596,11 @@ impl LocalSymbolRegistry {
                             GlobalSymbolKind::Interface(_) => unreachable!(),
                         },
                         None => {
-                            // TODO: emit compilation error; cannot find prefix or it is not a module
+                            module.diagnostics.error(
+                                error_codes::PATH_PREFIX_IS_NOT_RESOLVED,
+                                segment.identifier.span,
+                                format!("the prefix {} is not resolved; it is not a module or not exists", segment.identifier.symbol),
+                            );
                             return;
                         }
                     };
@@ -612,7 +630,15 @@ impl LocalSymbolRegistry {
                             .insert(ast.id, local_symbol);
                     }
                     None => {
-                        // TODO: emit compilation error; cannot find symbol
+                        module.diagnostics.error(
+                            error_codes::SYMBOL_NOT_FOUND,
+                            last.identifier.span,
+                            format!(
+                                "the symbol {} is not found in the module `{}`",
+                                last.identifier.symbol,
+                                visualize_module_path(&target_module.path)
+                            ),
+                        );
                     }
                 }
             }

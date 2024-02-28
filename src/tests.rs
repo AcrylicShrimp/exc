@@ -1,5 +1,5 @@
 use exc_diagnostic::Diagnostics;
-use exc_resolve::{resolve_global, SourceFileResolver};
+use exc_resolve::{resolve_global, resolve_local, SourceFileResolver};
 use std::path::Path;
 
 #[cfg(test)]
@@ -25,8 +25,10 @@ pub async fn test_module(
             .await
             .unwrap();
 
-        let (_module_registry, _global_symbol_registry) =
+        let (module_registry, global_symbol_registry) =
             resolve_global(&mut source_file_resolver, root_module).await;
+
+        let _local_symbol_registry = resolve_local(&module_registry, &global_symbol_registry);
     }
 
     source_file_resolver.into_diagnostics().await
